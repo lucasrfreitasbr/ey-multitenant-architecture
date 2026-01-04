@@ -1,7 +1,7 @@
 # 🏗️ Multi-Tenant SaaS Reference Architecture
-## 📚 Interview-Grade Documentation
+## 📚 Enterprise Reference Architecture Documentation
 
-> **🎯 Elevator Pitch**: A comprehensive reference architecture for building enterprise-grade multi-tenant SaaS applications on AWS. This architecture demonstrates Domain-Driven Design (DDD) principles with bounded contexts mapped to Kubernetes namespaces, event-driven communication via EventBridge and SQS, and a Zero Trust security model. Built on AWS EKS with Istio service mesh, it showcases composable business capabilities, data isolation patterns, and full observability with OpenTelemetry. Perfect for architects and engineers preparing for senior/staff-level interviews or implementing production-ready multi-tenant systems.
+> **🎯 Elevator Pitch**: A comprehensive reference architecture for building enterprise-grade multi-tenant SaaS applications on AWS. This architecture demonstrates Domain-Driven Design (DDD) principles with bounded contexts mapped to Kubernetes namespaces, event-driven communication via EventBridge and SQS, and a Zero Trust security model. Built on AWS EKS with Istio service mesh, it showcases composable business capabilities, data isolation patterns, and full observability with OpenTelemetry. This reference architecture provides production-ready patterns and best practices for implementing scalable, secure, and observable multi-tenant systems.
 
 ---
 
@@ -9,18 +9,18 @@
 
 ```
 aws-multitenant-saas-reference/
-├── 📄 README.md                          # 🗺️ You are here
+├── 📄 README.md                          → 🗺️ You are here
 │
 └── 📂 docs/
-    ├── 📋 00-overview.md                 # 🎯 Project overview & system context
-    ├── 🏛️ 01-enterprise-architecture.md  # ⭐ EA: TOGAF, Gartner, Composable Capabilities
-    ├── ⚙️ 02-backend-ddd-microservices.md # 🧩 DDD, Bounded Contexts, EDA
-    ├── 🎨 03-frontend-bff.md             # 🎭 BFF Pattern & Frontend Architecture
-    ├── ☁️ 04-cloud-foundation-sre.md     # 🌐 AWS Infrastructure & SRE
-    ├── 💾 05-data-platform-analytics-ml.md # 📈 Data Lake, Data Mesh, ML
-    ├── 📊 06-observability.md            # 🔍 OpenTelemetry & Observability
-    ├── 🔄 07-devsecops.md                # 🚀 CI/CD & Shift-Left Security
-    └── 🔒 08-security-zero-trust.md      # 🛡️ Zero Trust & Defense in Depth
+    ├── 🏛️ 01-enterprise-architecture.md  → ⭐ EA: TOGAF, Gartner, Composable Capabilities
+    ├── 🏛️ 02-overall-solution-architecture.md → 🎯 Overall Solution Architecture
+    ├── ☁️ 03-cloud-foundation-sre.md     → 🌐 AWS Infrastructure & SRE
+    ├── ⚙️ 04-backend-ddd-microservices.md → 🧩 DDD, Bounded Contexts, EDA
+    ├── 🎨 05-frontend-bff.md             → 🎭 BFF Pattern & Frontend Architecture
+    ├── 💾 06-data-platform-analytics-ml.md → 📈 Data Lake, Data Mesh, ML
+    ├── 🔒 07-security-zero-trust.md      → 🛡️ Zero Trust,Least Privilege & Defense in Depth
+    ├── 📊 08-observability.md            → 🔍 OpenTelemetry & Observability
+    └── 🔄 09-devsecops.md                → 🚀 CI/CD & Shift-Left Security
 ```
 
 ---
@@ -31,20 +31,31 @@ aws-multitenant-saas-reference/
 C4Context
     title System Context - Multi-Tenant SaaS Platform
     
-    Person(users, "End Users", "Multi-tenant SaaS customers")
-    Person(admins, "Administrators", "Tenant administrators")
+    Person(endUsers, "End Users", "Multi-tenant SaaS customers")
+    Person(tenantAdmins, "Tenant Administrators", "Manage and configure users")
+    Person(platformAdmins, "Platform Administrators", "Manage platform & infrastructure")
     
-    System(saas, "Multi-Tenant SaaS Platform", "AWS-based SaaS platform with DDD, EKS, Istio")
+    System(saasPlatform, "Multi-Tenant SaaS Platform", "SaaS platform delivering business capabilities through DDD, EDA and composable services & Apps")
     
-    System_Ext(eventbridge, "EventBridge", "AWS EventBridge for domain events")
-    System_Ext(dynamodb, "DynamoDB", "AWS DynamoDB for tenant-isolated data")
-    System_Ext(s3, "S3 Data Lake", "AWS S3 for analytics and ML")
+    System_Ext(authProvider, "OAuth Provider", "External identity provider")
+    System_Ext(paymentGateway, "Payment Gateway", "External Integration example")
+    System_Ext(emailService, "Email Service", "Other System/Service Capability Composable example")
     
-    Rel(users, saas, "Uses", "HTTPS")
-    Rel(admins, saas, "Manages", "HTTPS")
-    Rel(saas, eventbridge, "Publishes events", "EventBridge API")
-    Rel(saas, dynamodb, "Reads/Writes", "DynamoDB API")
-    Rel(saas, s3, "Writes analytics", "S3 API")
+    SystemDb(dynamodb, "DB Services (KV, Relational, Doc)", "AWS DynamoDB for tenant-isolated transactional data")
+    SystemDb(eventbridge, "EDA", "AWS messaging services for domain events and EDA")
+    SystemDb(s3Lake, "Data Lake", "Lakehouse for analytics, ML, and data products (Glue, Athena, SageMaker)")
+    
+    Rel(endUsers, saasPlatform, "Uses", "HTTPS/REST")
+    Rel(tenantAdmins, saasPlatform, "Manages", "HTTPS/REST")
+    Rel(platformAdmins, saasPlatform, "Administers", "HTTPS/CLI")
+    
+    Rel(saasPlatform, authProvider, "Validates identity", "OAuth 2.0")
+    Rel(saasPlatform, paymentGateway, "Processes payments", "HTTPS/REST")
+    Rel(saasPlatform, emailService, "Sends emails", "HTTPS/REST")
+    
+    Rel(saasPlatform, dynamodb, "Reads/Writes", "AWS DB Services")
+    Rel(saasPlatform, eventbridge, "Publishes events", "Async AWS Svcs")
+    Rel(saasPlatform, s3Lake, "Writes analytics", "CDC, S3, Streaming")
 ```
 
 ---
@@ -53,15 +64,15 @@ C4Context
 
 | Document | Description | Key Topics |
 |----------|-------------|------------|
-| 📋 **[00-overview.md](docs/00-overview.md)** | Project overview, system context, technology stack | System boundaries, tech stack, interview guide |
 | 🏛️ **[01-enterprise-architecture.md](docs/01-enterprise-architecture.md)** | EA frameworks, composable capabilities, value chain | TOGAF ADM, Gartner TIME/PAID, pace layers, composable architecture |
-| ⚙️ **[02-backend-ddd-microservices.md](docs/02-backend-ddd-microservices.md)** | DDD bounded contexts, microservices, event-driven patterns | Bounded contexts, EventBridge, outbox pattern, K8s namespaces |
-| 🎨 **[03-frontend-bff.md](docs/03-frontend-bff.md)** | Frontend architecture and BFF pattern | React, BFF, tenant context, API aggregation |
-| ☁️ **[04-cloud-foundation-sre.md](docs/04-cloud-foundation-sre.md)** | AWS infrastructure, EKS, Istio, networking | EKS, Istio mesh, Route53, CloudFront, WAF, API Gateway, SRE |
-| 💾 **[05-data-platform-analytics-ml.md](docs/05-data-platform-analytics-ml.md)** | Data patterns, lake, Data Mesh, ML pipelines | DynamoDB, S3, Glue, Athena, Medallion, Data Vault, Data Mesh |
-| 📊 **[06-observability.md](docs/06-observability.md)** | OpenTelemetry, metrics, logs, traces, SLOs | OpenTelemetry, distributed tracing, dashboards, SLOs |
-| 🔄 **[07-devsecops.md](docs/07-devsecops.md)** | CI/CD pipelines, shift-left security | GitHub Actions, SAST, SCA, IaC scanning, container scanning |
-| 🔒 **[08-security-zero-trust.md](docs/08-security-zero-trust.md)** | Zero Trust model, defense in depth | Zero Trust, IAM/IRSA, secrets management, mTLS, NetworkPolicies |
+| 🏛️ **[02-overall-solution-architecture.md](docs/02-overall-solution-architecture.md)** | Overall solution architecture, system context, technology stack | System boundaries, tech stack, architecture decisions |
+| ☁️ **[03-cloud-foundation-sre.md](docs/03-cloud-foundation-sre.md)** | AWS infrastructure, EKS, Istio, networking | EKS, Istio mesh, Route53, CloudFront, WAF, API Gateway, SRE |
+| ⚙️ **[04-backend-ddd-microservices.md](docs/04-backend-ddd-microservices.md)** | DDD bounded contexts, microservices, event-driven patterns | Bounded contexts, EventBridge, outbox pattern, K8s namespaces |
+| 🎨 **[05-frontend-bff.md](docs/05-frontend-bff.md)** | Frontend architecture and BFF pattern | React, BFF, tenant context, API aggregation |
+| 💾 **[06-data-platform-analytics-ml.md](docs/06-data-platform-analytics-ml.md)** | Data patterns, lake, Data Mesh, ML pipelines | DynamoDB, S3, Glue, Athena, Medallion, Data Vault, Data Mesh |
+| 🔒 **[07-security-zero-trust.md](docs/07-security-zero-trust.md)** | Zero Trust model, defense in depth | Zero Trust, IAM/IRSA, secrets management, mTLS, NetworkPolicies |
+| 📊 **[08-observability.md](docs/08-observability.md)** | OpenTelemetry, metrics, logs, traces, SLOs | OpenTelemetry, distributed tracing, dashboards, SLOs |
+| 🔄 **[09-devsecops.md](docs/09-devsecops.md)** | CI/CD pipelines, shift-left security | GitHub Actions, SAST, SCA, IaC scanning, container scanning |
 
 ---
 
@@ -76,25 +87,25 @@ C4Context
 ![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=flat&logo=terraform&logoColor=white)
 ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-000000?style=flat&logo=opentelemetry&logoColor=white)
 
-### Core Technologies
+### Core Technologies (few of base services + Technologies)
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| **Frontend** | React + TypeScript | User interface |
+| **Frontend** | React + Javascript | User interface |
 | **BFF** | Node.js + Express | API aggregation, security boundary |
-| **Backend** | Node.js + TypeScript | Domain services (microservices) |
+| **Backend** | Node.js + Javascript | Domain services (microservices) |
 | **Platform** | EKS + Istio | Container orchestration, service mesh |
-| **Data** | DynamoDB | Tenant-isolated operational data |
+| **Data** | Dynamo + Aurora + Document DBs | Tenant-isolated operational data |
 | **Events** | EventBridge + SQS | Event-driven communication |
 | **Analytics** | S3 + Glue + Athena | Data lake and analytics |
-| **IaC** | Terraform | Infrastructure as code |
-| **Observability** | OpenTelemetry | Metrics, logs, traces |
+| **IaC** | Terraform + Helm + ArgoCD | Infrastructure as code + GitOps |
+| **Observability** | OpenTelemetry + CloudWatch + XRay | Metrics, logs, traces |
 
 ---
 
-## 💬 Interview Talking Points
+## 🏛️ Architecture Principles & Decisions
 
-### 🏛️ Architecture Decisions
+### 🎯 Core Architecture Principles
 
 1. **Domain-Driven Design (DDD)**: Bounded contexts mapped to Kubernetes namespaces, enabling clear domain boundaries and independent deployment
 2. **Composable Capabilities**: Lower-level domains compose into higher-level business capabilities, demonstrating EA maturity
@@ -103,18 +114,19 @@ C4Context
 5. **Zero Trust Security**: Defense in depth with WAF → API Gateway → Istio mTLS → NetworkPolicies → Pod Security
 6. **Service Mesh**: Istio for east-west traffic with automatic mTLS, traffic management, and observability
 7. **Data Isolation**: Single DynamoDB table per domain with strict tenant_id partitioning + country residency partitions
-8. **BFF Pattern**: Backend for Frontend aggregates APIs, enforces security, and propagates tenant context
-9. **Observability**: OpenTelemetry for distributed tracing across services and event publishing
-10. **Shift-Left Security**: SAST, SCA, IaC scanning, and container scanning in CI/CD pipeline
-11. **Data Platform**: Medallion architecture (Bronze/Silver/Gold) with Data Mesh principles for domain-oriented data products
-12. **SRE Practices**: SLIs, SLOs, error budgets, and runbooks for operational excellence
-13. **EA Frameworks**: TOGAF ADM alignment, Gartner TIME/PAID portfolio management, pace layers
-14. **Infrastructure**: AWS-native services with Terraform for reproducibility and version control
-15. **Residency Compliance**: Country partition enforcement (US/BR) with geo-validation at gateway level
+8. **Microfrontend + Atomic Design**: Atomic Design principles (atoms, molecules, organisms, templates, pages) for component composition, enabling independent development and tenant-specific customization
+9. **BFF Pattern**: Backend for Frontend aggregates APIs, enforces security, and propagates tenant context
+10. **Observability**: OpenTelemetry for distributed tracing across services and event publishing
+11. **Shift-Left Security**: SAST, SCA, IaC scanning, and container scanning in CI/CD pipeline
+12. **Data Platform**: Medallion architecture (Bronze/Silver/Gold) with Data Mesh principles for domain-oriented data products
+13. **SRE Practices**: SLIs, SLOs, error budgets, and runbooks for operational excellence
+14. **EA Frameworks**: TOGAF ADM alignment, Gartner TIME/PAID portfolio management, pace layers
+15. **Infrastructure**: AWS-native services with Terraform for reproducibility and version control
+16. **Residency Compliance**: Country partition enforcement (US/BR) with geo-validation at gateway level
 
-### 🎯 Key Strengths
+### 🎯 Key Architecture Strengths
 
-- ✅ **Interview-Ready**: Comprehensive documentation covering all architectural disciplines
+- ✅ **Comprehensive Coverage**: Documentation covering all architectural disciplines
 - ✅ **Production Patterns**: Real-world patterns (outbox, inbox, CQRS, multi-tenancy)
 - ✅ **EA Maturity**: Composable capabilities, value chain, portfolio management
 - ✅ **Security First**: Zero Trust model with defense in depth
@@ -126,56 +138,39 @@ C4Context
 
 ## 🚀 Quick Start
 
-> **Note**: This is documentation-only. For implementation, see [00-overview.md](docs/00-overview.md) for next steps.
+> **Note**: This is documentation-only (EY Draft). 
 
-1. 📖 **Read the Overview**: Start with [00-overview.md](docs/00-overview.md) for system context
-2. 🏛️ **Understand EA**: Review [01-enterprise-architecture.md](docs/01-enterprise-architecture.md) for composable capabilities
-3. ⚙️ **Study DDD**: Explore [02-backend-ddd-microservices.md](docs/02-backend-ddd-microservices.md) for bounded contexts
-4. 🎨 **Review Frontend**: Check [03-frontend-bff.md](docs/03-frontend-bff.md) for BFF pattern
-5. ☁️ **Infrastructure**: See [04-cloud-foundation-sre.md](docs/04-cloud-foundation-sre.md) for AWS setup
-6. 💾 **Data Platform**: Review [05-data-platform-analytics-ml.md](docs/05-data-platform-analytics-ml.md) for data patterns
-7. 📊 **Observability**: Check [06-observability.md](docs/06-observability.md) for OpenTelemetry
-8. 🔄 **DevSecOps**: See [07-devsecops.md](docs/07-devsecops.md) for CI/CD pipelines
-9. 🔒 **Security**: Review [08-security-zero-trust.md](docs/08-security-zero-trust.md) for Zero Trust model
-
----
-
-## 📊 Documentation Statistics
-
-- **Total Documents**: 9 (README + 8 discipline docs)
-- **Total Mermaid Diagrams**: ~36 diagrams across all documents
-- **C4 Model Levels**: Up to Level 3 (Context, Container, Component)
-- **Example Domains**: Identity, User, Billing, Notifications, Analytics, Compliance
+1. 🏛️ **Enterprise Architecture**: Start with [01-enterprise-architecture.md](docs/01-enterprise-architecture.md) for EA frameworks and composable capabilities
+2. 🏛️ **Solution Architecture**: Review [02-overall-solution-architecture.md](docs/02-overall-solution-architecture.md) for overall system context
+3. ☁️ **Cloud Foundation**: See [03-cloud-foundation-sre.md](docs/03-cloud-foundation-sre.md) for AWS infrastructure and SRE
+4. ⚙️ **Backend & DDD**: Explore [04-backend-ddd-microservices.md](docs/04-backend-ddd-microservices.md) for bounded contexts
+5. 🎨 **Frontend & BFF**: Check [05-frontend-bff.md](docs/05-frontend-bff.md) for BFF pattern
+6. 💾 **Data Platform**: Review [06-data-platform-analytics-ml.md](docs/06-data-platform-analytics-ml.md) for data patterns
+7. 🔒 **Security**: Review [07-security-zero-trust.md](docs/07-security-zero-trust.md) for Zero Trust model
+8. 📊 **Observability**: Check [08-observability.md](docs/08-observability.md) for OpenTelemetry
+9. 🔄 **DevSecOps**: See [09-devsecops.md](docs/09-devsecops.md) for CI/CD pipelines
 
 ---
 
 ## 🎯 Target Audience
 
 - 🏛️ **Enterprise Architects**: EA frameworks, composable capabilities, portfolio management
+- 🎨 **Frontend Engineers**: Microfrontends, Atomic Design, BFF pattern, React architecture
 - ⚙️ **Backend Engineers**: DDD, microservices, event-driven patterns
 - ☁️ **Platform Engineers**: EKS, Istio, AWS infrastructure, SRE
 - 💾 **Data Engineers**: Data lake, Data Mesh, analytics pipelines
 - 🔒 **Security Engineers**: Zero Trust, defense in depth, IAM
 - 📊 **Observability Engineers**: OpenTelemetry, distributed tracing, SLOs
 - 🚀 **DevOps Engineers**: CI/CD, shift-left security, infrastructure as code
-- 💼 **Interview Candidates**: Comprehensive reference for senior/staff-level interviews
 
 ---
 
-## 📝 License & Usage
-
-This is a **reference architecture** for educational and interview preparation purposes. Use it to:
-- ✅ Understand multi-tenant SaaS patterns
-- ✅ Study enterprise architecture frameworks
-- ✅ Prepare for architecture interviews
-- ✅ Reference production-ready patterns
-- ✅ Learn AWS-native service integration
+> **💡 Tip**: Each document is self-contained but cross-referenced. Start with Enterprise Architecture, then explore the Overall Solution Architecture, followed by specific disciplines based on your needs.
 
 ---
 
-> **💡 Tip**: Each document is self-contained but cross-referenced. Start with the overview, then dive into specific disciplines based on your interests or interview focus.
+**Last Updated**: Sun, Jan 4th, 2026 | **Version**: 1.0 | **Status**: 📚 For Architecture Interview (principles discussion only) 
 
 ---
 
-**Last Updated**: 2024 | **Version**: 1.0 | **Status**: 📚 Documentation Complete
-
+**Author**: Lucas Freitas.

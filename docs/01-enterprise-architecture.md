@@ -1,8 +1,9 @@
 # 🏛️ Enterprise Architecture
-## ⭐ TOGAF, Gartner, Composable Capabilities & Value Chain
+## Business Value, Composable Architecture, and EA Governance
 
 > **💡 This is the most important document - heavy emphasis on EA frameworks and composable capabilities**
 
+> **💡 IMPORTANT:** Always have the eyes on the business! Business drivers (OKRs) measured by KPIs among systems and services implementation build value. Technology serving and adding to business
 ---
 
 ## 🎯 Scope
@@ -14,35 +15,32 @@
 - ⚡ **Pace Layers**: Systems of Record, Engagement, and Innovation
 - 📦 **Portfolio Management**: Application portfolio strategy and lifecycle
 
+**Document Flow**: This document follows a logical progression: we start with **Value Chain** (why we exist - business value), then **Composable Capabilities** (how we build - architectural approach), followed by **Portfolio Management** (what to invest in and how fast), then **TOGAF ADM** (how we govern - process), and finally **Key Decisions** (synthesis of all frameworks).
+
 ---
 
-## 🔗 Value Chain
+## 🔗 Value Chain: Business Value Delivery
 
-```mermaid
-graph LR
-    subgraph "Value Chain - Application Portfolio"
-        Identity[🔐 Identity<br/>AuthN/AuthZ]
-        User[👤 User Management<br/>Profiles & Residency]
-        Billing[💳 Billing<br/>Subscriptions & Invoices]
-        Notifications[📧 Notifications<br/>Email & Webhooks]
-        Analytics[📊 Analytics<br/>Reporting & Insights]
-        Compliance[✅ Compliance<br/>Audit & Regulatory]
-    end
-    
-    Identity -->|"Authenticates"| User
-    User -->|"Manages"| Billing
-    Billing -->|"Triggers"| Notifications
-    User -->|"Generates Data"| Analytics
-    Billing -->|"Generates Data"| Analytics
-    Identity -->|"Audit Logs"| Compliance
-    Billing -->|"Financial Records"| Compliance
-    Analytics -->|"Insights"| User
-    Analytics -->|"Insights"| Billing
-    Compliance -->|"Validates"| Identity
-    Compliance -->|"Validates"| Billing
-```
+### 📖 Understanding Value Streams
 
-### 📊 Value Chain Description
+**Value** is fundamental to everything an organization does - the primary reason it exists is to provide value to stakeholders. [Value Streams, Open Group, 2017]
+
+**Value Stream** represents the sequence of activities that deliver value to stakeholders, always defined from the stakeholder's perspective. [ArchiMate 3.1, Open Group, 2019]
+
+Value streams flow through multiple stages, typically including:
+- **Request**: Stakeholder need or demand that initiates the value stream
+- **Design**: Conceptualization and planning of the solution
+- **Development**: Building and implementing the solution
+- **Operations**: Delivering and maintaining the solution
+- **Outcome**: The value delivered to stakeholders
+
+Each stage is supported by management functions ensuring effective value delivery.
+
+![Value Stream Diagram](../images/value-stream.png)
+
+### 🏗️ Application Portfolio in the Value Stream
+
+In our multi-tenant SaaS platform, applications contribute to the value stream by providing specific capabilities that support different stages of value delivery. Each application plays a role in enabling the overall value proposition (*non exhaustive example*):
 
 | Application | Value Contribution | Key Capabilities |
 |-------------|-------------------|------------------|
@@ -55,101 +53,55 @@ graph LR
 
 **Value Flow**: Identity enables access → User Management manages customers → Billing generates revenue → Notifications engage users → Analytics provide insights → Compliance ensures governance
 
+To deliver this value efficiently, we need a composable architecture that enables rapid capability composition and reuse.
+
 ---
 
 ## 🧩 Composable Capabilities (Layered View) - ⭐ CRITICAL
 
-```mermaid
-graph TB
-    subgraph "🎯 Business Capabilities Layer (HIGH VALUE)"
-        CustomerOnboarding[Customer Onboarding<br/>End-to-end customer journey]
-        RevenueManagement[Revenue Management<br/>Subscription & billing optimization]
-        ComplianceAudit[Compliance & Audit<br/>Regulatory compliance & reporting]
-    end
-    
-    subgraph "🧩 Application Composition Layer"
-        CustomerPortal[Customer Portal<br/>identity + user + billing]
-        AdminDashboard[Admin Dashboard<br/>all domains]
-        AnalyticsPlatform[Analytics Platform<br/>analytics + compliance]
-    end
-    
-    subgraph "🏗️ Domain Foundation Layer"
-        IdentityDomain[🔐 Identity Domain]
-        UserDomain[👤 User Domain]
-        BillingDomain[💳 Billing Domain]
-        NotificationsDomain[📧 Notifications Domain]
-        AnalyticsDomain[📊 Analytics Domain]
-        ComplianceDomain[✅ Compliance Domain]
-    end
-    
-    IdentityDomain --> CustomerPortal
-    UserDomain --> CustomerPortal
-    BillingDomain --> CustomerPortal
-    
-    IdentityDomain --> AdminDashboard
-    UserDomain --> AdminDashboard
-    BillingDomain --> AdminDashboard
-    NotificationsDomain --> AdminDashboard
-    AnalyticsDomain --> AdminDashboard
-    ComplianceDomain --> AdminDashboard
-    
-    AnalyticsDomain --> AnalyticsPlatform
-    ComplianceDomain --> AnalyticsPlatform
-    
-    CustomerPortal --> CustomerOnboarding
-    AdminDashboard --> RevenueManagement
-    AnalyticsPlatform --> ComplianceAudit
-    
-    CustomerOnboarding -->|"Composes"| IdentityDomain
-    CustomerOnboarding -->|"Composes"| UserDomain
-    CustomerOnboarding -->|"Composes"| NotificationsDomain
-    CustomerOnboarding -->|"Composes"| AnalyticsDomain
-    
-    RevenueManagement -->|"Composes"| BillingDomain
-    RevenueManagement -->|"Composes"| UserDomain
-    RevenueManagement -->|"Composes"| AnalyticsDomain
-    RevenueManagement -->|"Composes"| ComplianceDomain
-    
-    ComplianceAudit -->|"Composes"| IdentityDomain
-    ComplianceAudit -->|"Composes"| BillingDomain
-    ComplianceAudit -->|"Composes"| UserDomain
-    ComplianceAudit -->|"Composes"| AnalyticsDomain
-```
+### 📐 Composable Architecture Principles
 
-### 🎯 Business Capabilities Examples
+Composable architecture builds higher-level business capabilities by combining lower-level domain services and applications through three layers:
+
+- **Domain Foundation Layer**: Core domain services (Identity, User, Billing, etc.) provide fundamental capabilities
+- **Application Composition Layer**: Applications combine multiple domains for integrated user experiences
+- **Business Capabilities Layer**: High-value capabilities emerge from composition
+
+This enables **reuse** across applications, rapid **composition** of new capabilities, independent **evolution** of domains, and scalable value delivery.
+
+![Composable Capabilities Layered Architecture](../images/business-capabilities.png)
+
+
+### 🎯 Composable Capabilities Examples
+
+Examples of how domains compose into higher-level business capabilities:
 
 #### 1. Customer Onboarding
 **Composition**: 🔐 Identity + 👤 User + 📧 Notifications + 📊 Analytics
 
 **Capability**: End-to-end customer journey from signup to first value realization
 
-**Value**: 
-- Automated onboarding workflow
-- Welcome emails and setup guidance
-- Analytics tracking of onboarding funnel
-- Identity verification and profile creation
+**Value Delivered**: Automated onboarding, welcome emails, analytics tracking, identity verification
+
+**Value Stream Contribution**: Supports **Design** and **Development** stages enabling rapid customer acquisition.
 
 #### 2. Revenue Management
 **Composition**: 💳 Billing + 👤 User + 📊 Analytics + ✅ Compliance
 
 **Capability**: Optimize subscription revenue and billing operations
 
-**Value**:
-- Subscription lifecycle management
-- Revenue analytics and forecasting
-- Compliance with financial regulations
-- User segmentation for pricing optimization
+**Value Delivered**: Subscription lifecycle management, revenue analytics, financial compliance, pricing optimization
+
+**Value Stream Contribution**: Supports **Operations** stage ensuring sustainable revenue and compliance.
 
 #### 3. Compliance & Audit
 **Composition**: 🔐 Identity + 💳 Billing + 👤 User + 📊 Analytics
 
 **Capability**: Regulatory compliance and audit trail management
 
-**Value**:
-- Audit logs from all domains
-- Financial record compliance
-- User data privacy compliance
-- Analytics-driven compliance reporting
+**Value Delivered**: Audit logs, financial compliance, data privacy compliance, analytics-driven reporting
+
+**Value Stream Contribution**: Supports all stages ensuring governance, risk management, and regulatory compliance.
 
 ### 🏗️ Domain Foundation Layer
 
@@ -170,78 +122,45 @@ graph TB
 | **Admin Dashboard** | All domains | Platform administration and management |
 | **Analytics Platform** | Analytics + Compliance | Business intelligence and compliance reporting |
 
----
-
-## 📐 TOGAF ADM (Architecture Development Method)
-
-```mermaid
-graph TD
-    subgraph "TOGAF ADM Phases"
-        Prelim[Preliminary Phase<br/>Architecture Principles]
-        PhaseA[Phase A: Architecture Vision<br/>Business Drivers]
-        PhaseB[Phase B: Business Architecture<br/>Business Capabilities]
-        PhaseC[Phase C: Information Systems<br/>Application & Data]
-        PhaseD[Phase D: Technology Architecture<br/>Infrastructure]
-        PhaseE[Phase E: Opportunities & Solutions<br/>Migration Planning]
-        PhaseF[Phase F: Migration Planning<br/>Implementation]
-        PhaseG[Phase G: Implementation Governance<br/>Change Management]
-        PhaseH[Phase H: Architecture Change Management<br/>Continuous Improvement]
-        ReqMgmt[Requirements Management<br/>Ongoing]
-    end
-    
-    Prelim --> PhaseA
-    PhaseA --> PhaseB
-    PhaseB --> PhaseC
-    PhaseC --> PhaseD
-    PhaseD --> PhaseE
-    PhaseE --> PhaseF
-    PhaseF --> PhaseG
-    PhaseG --> PhaseH
-    PhaseH --> PhaseA
-    
-    ReqMgmt -.->|"Informs"| PhaseA
-    ReqMgmt -.->|"Informs"| PhaseB
-    ReqMgmt -.->|"Informs"| PhaseC
-    ReqMgmt -.->|"Informs"| PhaseD
-```
-
-### 📋 TOGAF Alignment
-
-| Phase | Our Architecture Alignment | Artifacts |
-|-------|---------------------------|-----------|
-| **Preliminary** | Architecture principles, governance | EA principles, composable architecture |
-| **Phase A** | Business drivers, stakeholders | Value chain, business capabilities |
-| **Phase B** | Business architecture, capabilities | Composable capabilities, value chain |
-| **Phase C** | Application and data architecture | DDD bounded contexts, data patterns |
-| **Phase D** | Technology architecture | AWS infrastructure, EKS, Istio |
-| **Phase E** | Migration opportunities | Implementation roadmap |
-| **Phase F** | Migration planning | Terraform modules, deployment strategy |
-| **Phase G** | Implementation governance | CI/CD, DevSecOps practices |
-| **Phase H** | Change management | Observability, SLOs, continuous improvement |
+To optimize investments in this composable architecture, we use portfolio management frameworks (TIME and Pace Layers) to guide what to invest in and how fast to evolve.
 
 ---
 
-## 📊 Gartner TIME/PAID Framework
+## 📊 Portfolio Management: Investment Strategy and Change Velocity
 
-```mermaid
-graph TB
-    subgraph "Gartner TIME/PAID Matrix"
-        subgraph "High Value"
-            Invest[🟢 INVEST<br/>High Value, High Fit]
-            Migrate[🟡 MIGRATE<br/>High Value, Low Fit]
-        end
-        
-        subgraph "Low Value"
-            Tolerate[🔴 TOLERATE<br/>Low Value, Low Fit]
-            Eliminate[⚪ ELIMINATE<br/>Low Value, Low Fit]
-        end
-    end
-    
-    Invest -->|"Identity<br/>User<br/>Billing"| InvestApps[Strategic Applications]
-    Migrate -->|"Legacy Analytics<br/>Legacy Compliance"| MigrateApps[Modernize These]
-    Tolerate -->|"Legacy Notifications"| TolerateApps[Maintain Until Replacement]
-    Eliminate -->|"Deprecated Features"| EliminateApps[Sunset These]
-```
+### 🎯 Why TIME and Pace Layers Matter
+
+In a composable architecture, effective portfolio management aligns technology investments with **business STRATEGY**. Gartner's TIME framework and Pace Layers provide complementary lenses:
+
+- **TIME Framework** answers **"What should we invest in?"** by evaluating applications based on business value and strategic fit
+- **Pace Layers** answers **"How fast should we change?"** by recognizing that different systems require different change velocities
+
+Together, these frameworks optimize both **investment allocation** (TIME) and **change velocity** (Pace Layers) to maximize business value delivery.
+
+### 🔗 Integration with Composable Capabilities
+
+**TIME Framework + Composable Capabilities:**
+- **INVEST** decisions focus on core domain services (Identity, User, Billing) that form the foundation layer
+- **MIGRATE** decisions target applications needing modernization to better support composition and reuse
+- Investment prioritization builds strong, reusable domain foundations enabling rapid composition
+
+**Pace Layers + Composable Capabilities:**
+- **Systems of Record** (Identity, User, Billing) provide stable, well-tested domain services as foundation
+- **Systems of Engagement** (Customer Portal, Admin Dashboard) compose stable domains for user-facing experiences
+- **Systems of Innovation** enable rapid experimentation that can later be composed into stable domains
+- This allows us to **stabilize** core domains while **innovating** at the edges, **composing** new capabilities, and **evolving** independently
+
+### 🔗 Connection to Value Chain
+
+- TIME framework ensures we invest in applications contributing most to value delivery stages
+- Pace Layers optimize change velocity: fast innovation for new opportunities, stable operations for reliable delivery
+- Applications in the value chain are evaluated through TIME to determine investment priority
+
+---
+
+## 📊 Gartner TIME Framework
+
+![TIME Framework Matrix](../images/time.png)
 
 ### 📊 Application Positioning
 
@@ -265,21 +184,8 @@ graph TB
 
 ## ⚡ Pace Layers
 
-```mermaid
-graph TB
-    subgraph "Pace Layers Architecture"
-        Innovation[🚀 Systems of Innovation<br/>Fast Change, Experimental]
-        Engagement[🎭 Systems of Engagement<br/>Medium Change, User-Facing]
-        Record[🗄️ Systems of Record<br/>Slow Change, Stable]
-    end
-    
-    Innovation -->|"New Features"| Engagement
-    Engagement -->|"Stabilized"| Record
-    
-    Innovation -.->|"Analytics Experiments<br/>ML Models<br/>New Integrations"| InnovationApps[Innovation Apps]
-    Engagement -.->|"Customer Portal<br/>Admin Dashboard<br/>Notifications"| EngagementApps[Engagement Apps]
-    Record -.->|"Identity<br/>User<br/>Billing<br/>Compliance"| RecordApps[Record Apps]
-```
+![Pace Layers Architecture](../images/pace-layering.png)
+
 
 ### 📊 Pace Layer Positioning
 
@@ -295,28 +201,55 @@ graph TB
 - **🎭 Engagement**: User experience focus, frequent feature releases
 - **🗄️ Record**: Stability and reliability, careful change management
 
+To govern this architecture systematically, we follow TOGAF ADM as our architecture governance process.
+
+---
+
+## 📐 TOGAF ADM: Architecture Governance Process
+
+TOGAF ADM provides a cyclical process for developing and managing enterprise architecture. Our composable capabilities approach integrates seamlessly: business capabilities (Phase B) are realized through applications (Phase C) built on domain services (Phase D), with governance and continuous improvement (Phases G and H).
+
+![TOGAF ADM Cycle](../images/togaf-adm.png)
+
+### 📋 TOGAF Alignment
+
+| Phase | Our Architecture Alignment | Artifacts |
+|-------|---------------------------|-----------|
+| **Preliminary** | Architecture principles, governance | EA principles, composable architecture |
+| **Phase A** | Business drivers, stakeholders | Value chain, business capabilities |
+| **Phase B** | Business architecture, capabilities | Composable capabilities, value chain |
+| **Phase C** | Application and data architecture | DDD bounded contexts, data patterns |
+| **Phase D** | Technology architecture | AWS infrastructure, EKS, Istio |
+| **Phase E** | Migration opportunities | Implementation roadmap |
+| **Phase F** | Migration planning | Terraform modules, deployment strategy |
+| **Phase G** | Implementation governance | CI/CD, DevSecOps practices |
+| **Phase H** | Change management | Observability, SLOs, continuous improvement |
+
 ---
 
 ## 💡 Key Decisions
 
-1. **✅ Composable Architecture**: Lower-level domains compose into higher-level business capabilities, enabling agility and reuse
-2. **✅ Domain-Driven Design**: Bounded contexts as foundation for composable capabilities
+These decisions synthesize our approach across all frameworks:
+
+1. **✅ Composable Architecture** (see Composable Capabilities): Lower-level domains compose into higher-level business capabilities, enabling agility and reuse
+2. **✅ Domain-Driven Design**: Bounded contexts provide the foundation for composable capabilities
 3. **✅ Event-Driven Communication**: Loose coupling via events enables independent domain evolution
-4. **✅ Portfolio Management**: Gartner TIME/PAID framework guides investment decisions
-5. **✅ Pace Layers**: Different change rates for different system types (Innovation, Engagement, Record)
-6. **✅ TOGAF Alignment**: Architecture development follows TOGAF ADM methodology
-7. **✅ Value Chain Focus**: Applications positioned in value chain showing business contribution
-8. **✅ EA Governance**: Architecture principles and governance framework established
+4. **✅ Portfolio Management** (see Portfolio Management): TIME framework guides investment decisions; Pace Layers optimize change velocity
+5. **✅ Value Chain Focus** (see Value Chain): Applications positioned to maximize business value contribution
+6. **✅ TOGAF Alignment** (see TOGAF ADM): Architecture development follows TOGAF ADM methodology for systematic governance
+7. **✅ EA Governance**: Architecture principles and governance framework ensure continuous alignment with business strategy
+
+Together, these decisions create a cohesive architecture that balances business value delivery (Value Chain), architectural flexibility (Composable), investment optimization (Portfolio Management), and systematic governance (TOGAF).
 
 ---
 
 ## 🔗 Related Documentation
 
 - 📄 [README.md](../README.md) - Central index
-- 📋 [00-overview.md](00-overview.md) - System context and overview
-- ⚙️ [02-backend-ddd-microservices.md](02-backend-ddd-microservices.md) - DDD bounded contexts implementation
-- ☁️ [04-cloud-foundation-sre.md](04-cloud-foundation-sre.md) - Infrastructure architecture
-- 💾 [05-data-platform-analytics-ml.md](05-data-platform-analytics-ml.md) - Data platform and analytics
+- 🏛️ [02-overall-solution-architecture.md](02-overall-solution-architecture.md) - Overall solution architecture
+- ☁️ [03-cloud-foundation-sre.md](03-cloud-foundation-sre.md) - Infrastructure architecture
+- ⚙️ [04-backend-ddd-microservices.md](04-backend-ddd-microservices.md) - DDD bounded contexts implementation
+- 💾 [06-data-platform-analytics-ml.md](06-data-platform-analytics-ml.md) - Data platform and analytics
 
 ---
 

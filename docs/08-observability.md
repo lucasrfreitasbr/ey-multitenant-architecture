@@ -301,9 +301,9 @@ Trace: trace-001 (Duration: 250ms)
 ## 🔗 Related Documentation
 
 - 📄 [README.md](../README.md) - Central index
-- ☁️ [04-cloud-foundation-sre.md](04-cloud-foundation-sre.md) - SRE practices and SLIs
-- ⚙️ [02-backend-ddd-microservices.md](02-backend-ddd-microservices.md) - Service architecture
-- 🔄 [07-devsecops.md](07-devsecops.md) - CI/CD and deployment
+- ☁️ [03-cloud-foundation-sre.md](03-cloud-foundation-sre.md) - SRE practices and SLIs
+- ⚙️ [04-backend-ddd-microservices.md](04-backend-ddd-microservices.md) - Service architecture
+- 🔄 [09-devsecops.md](09-devsecops.md) - CI/CD and deployment
 
 ---
 

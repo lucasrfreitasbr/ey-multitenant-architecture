@@ -430,9 +430,9 @@ graph TB
 ## 🔗 Related Documentation
 
 - 📄 [README.md](../README.md) - Central index
-- ⚙️ [02-backend-ddd-microservices.md](02-backend-ddd-microservices.md) - Domain services and data patterns
-- ☁️ [04-cloud-foundation-sre.md](04-cloud-foundation-sre.md) - Infrastructure and S3 setup
-- 📊 [06-observability.md](06-observability.md) - Observability and data collection
+- ⚙️ [04-backend-ddd-microservices.md](04-backend-ddd-microservices.md) - Domain services and data patterns
+- ☁️ [03-cloud-foundation-sre.md](03-cloud-foundation-sre.md) - Infrastructure and S3 setup
+- 📊 [08-observability.md](08-observability.md) - Observability and data collection
 
 ---
 

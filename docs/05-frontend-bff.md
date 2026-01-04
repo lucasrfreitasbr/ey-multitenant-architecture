@@ -326,9 +326,9 @@ graph TB
 ## 🔗 Related Documentation
 
 - 📄 [README.md](../README.md) - Central index
-- ⚙️ [02-backend-ddd-microservices.md](02-backend-ddd-microservices.md) - Domain services architecture
-- ☁️ [04-cloud-foundation-sre.md](04-cloud-foundation-sre.md) - Infrastructure and networking
-- 🔒 [08-security-zero-trust.md](08-security-zero-trust.md) - Security and authentication
+- ⚙️ [04-backend-ddd-microservices.md](04-backend-ddd-microservices.md) - Domain services architecture
+- ☁️ [03-cloud-foundation-sre.md](03-cloud-foundation-sre.md) - Infrastructure and networking
+- 🔒 [07-security-zero-trust.md](07-security-zero-trust.md) - Security and authentication
 
 ---
 

@@ -342,9 +342,9 @@ graph TB
 ## 🔗 Related Documentation
 
 - 📄 [README.md](../README.md) - Central index
-- ☁️ [04-cloud-foundation-sre.md](04-cloud-foundation-sre.md) - Infrastructure and networking
-- 🔄 [07-devsecops.md](07-devsecops.md) - CI/CD and security scanning
-- ⚙️ [02-backend-ddd-microservices.md](02-backend-ddd-microservices.md) - Service architecture
+- ☁️ [03-cloud-foundation-sre.md](03-cloud-foundation-sre.md) - Infrastructure and networking
+- 🔄 [09-devsecops.md](09-devsecops.md) - CI/CD and security scanning
+- ⚙️ [04-backend-ddd-microservices.md](04-backend-ddd-microservices.md) - Service architecture
 
 ---
 

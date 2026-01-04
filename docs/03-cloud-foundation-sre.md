@@ -397,10 +397,11 @@ graph LR
 ## 🔗 Related Documentation
 
 - 📄 [README.md](../README.md) - Central index
-- 📋 [00-overview.md](00-overview.md) - System context
-- ⚙️ [02-backend-ddd-microservices.md](02-backend-ddd-microservices.md) - Domain services
-- 🔒 [08-security-zero-trust.md](08-security-zero-trust.md) - Security model
-- 📊 [06-observability.md](06-observability.md) - Observability and monitoring
+- 🏛️ [01-enterprise-architecture.md](01-enterprise-architecture.md) - Enterprise architecture
+- 🏛️ [02-overall-solution-architecture.md](02-overall-solution-architecture.md) - Overall solution architecture
+- ⚙️ [04-backend-ddd-microservices.md](04-backend-ddd-microservices.md) - Domain services
+- 🔒 [07-security-zero-trust.md](07-security-zero-trust.md) - Security model
+- 📊 [08-observability.md](08-observability.md) - Observability and monitoring
 
 ---
 

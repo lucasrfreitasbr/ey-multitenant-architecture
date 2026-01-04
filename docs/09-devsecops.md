@@ -373,9 +373,9 @@ jobs:
 ## 🔗 Related Documentation
 
 - 📄 [README.md](../README.md) - Central index
-- 🔒 [08-security-zero-trust.md](08-security-zero-trust.md) - Security model and practices
-- ☁️ [04-cloud-foundation-sre.md](04-cloud-foundation-sre.md) - Infrastructure and deployment
-- 📊 [06-observability.md](06-observability.md) - Monitoring and alerting
+- 🔒 [07-security-zero-trust.md](07-security-zero-trust.md) - Security model and practices
+- ☁️ [03-cloud-foundation-sre.md](03-cloud-foundation-sre.md) - Infrastructure and deployment
+- 📊 [08-observability.md](08-observability.md) - Monitoring and alerting
 
 ---
 

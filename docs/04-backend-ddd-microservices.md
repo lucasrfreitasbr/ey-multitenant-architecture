@@ -400,10 +400,11 @@ sequenceDiagram
 
 - 📄 [README.md](../README.md) - Central index
 - 🏛️ [01-enterprise-architecture.md](01-enterprise-architecture.md) - EA and composable capabilities
-- 🎨 [03-frontend-bff.md](03-frontend-bff.md) - BFF pattern and frontend
-- ☁️ [04-cloud-foundation-sre.md](04-cloud-foundation-sre.md) - K8s and Istio infrastructure
-- 💾 [05-data-platform-analytics-ml.md](05-data-platform-analytics-ml.md) - Data patterns
-- 🔒 [08-security-zero-trust.md](08-security-zero-trust.md) - Security and multi-tenancy
+- 🏛️ [01-enterprise-architecture.md](01-enterprise-architecture.md) - EA and composable capabilities
+- 🎨 [05-frontend-bff.md](05-frontend-bff.md) - BFF pattern and frontend
+- ☁️ [03-cloud-foundation-sre.md](03-cloud-foundation-sre.md) - K8s and Istio infrastructure
+- 💾 [06-data-platform-analytics-ml.md](06-data-platform-analytics-ml.md) - Data patterns
+- 🔒 [07-security-zero-trust.md](07-security-zero-trust.md) - Security and multi-tenancy
 
 ---
 
