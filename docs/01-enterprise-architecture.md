@@ -160,6 +160,8 @@ Together, these frameworks optimize both **investment allocation** (TIME) and **
 
 ## 📊 Gartner TIME Framework
 
+The **Gartner TIME Framework** provides a strategic portfolio management approach that evaluates applications based on their **business value** and **technical fit**. By positioning applications across four quadrants (INVEST, MIGRATE, TOLERATE, ELIMINATE), we optimize **investment allocation** and prioritize modernization efforts. This framework complements our **Pace Layers** strategy by determining **what** to invest in, while Pace Layers determine **how fast** applications should evolve. Together, they enable data-driven portfolio decisions that align technical investments with business value delivery.
+
 ![TIME Framework Matrix](../images/time.png)
 
 ### 📊 Application Positioning
@@ -183,6 +185,8 @@ Together, these frameworks optimize both **investment allocation** (TIME) and **
 ---
 
 ## ⚡ Pace Layers
+
+**Pace Layers Architecture** organizes applications into three layers based on their **rate of change**: Systems of Innovation (fast), Systems of Engagement (medium), and Systems of Record (slow). This approach optimizes **change velocity** by allowing rapid experimentation in innovation layers while maintaining stability in record systems. Pace Layers complement the **TIME Framework** by determining **change cadence** for applications, ensuring that high-value investments (from TIME) evolve at appropriate speeds. Together, they create a balanced architecture that enables both **agile innovation** and **reliable operations** within our composable enterprise architecture.
 
 ![Pace Layers Architecture](../images/pace-layering.png)
 
