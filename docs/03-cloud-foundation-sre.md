@@ -5,11 +5,23 @@
 
 ---
 
+## 🎯 Cloud Foundation Principles
+
+This cloud foundation follows **cloud-native architecture principles** and **composable infrastructure patterns** to deliver a resilient, scalable, and secure multi-tenant SaaS platform. Our approach emphasizes **infrastructure as code (IaC)** for reproducibility, **managed services** for operational simplicity, and **defense-in-depth security** at every layer. The architecture is designed as **composable building blocks**—each infrastructure component (networking, compute, storage, security) can be independently scaled, updated, and managed while maintaining clear boundaries and interfaces. We leverage **AWS Well-Architected Framework** principles (operational excellence, security, reliability, performance efficiency, cost optimization) and **SRE methodologies** (SLIs, SLOs, error budgets) to ensure production-grade reliability and observability. The foundation supports **zero-trust networking** with service mesh mTLS, **least-privilege IAM** via IRSA, and **immutable infrastructure** patterns for consistent deployments.
+
+---
+
 ## 🎯 Scope
 
-- ☁️ **AWS Infrastructure**: VPC, subnets, endpoints, security groups, networking
-- 🎯 **EKS Cluster**: Cluster design, node groups, IRSA (IAM Roles for Service Accounts)
+- 🌐 **Frontdoor Services**: Route53 (DNS), CloudFront (CDN), WAF (Web Application Firewall), edge security
+- ☁️ **AWS Infrastructure**: VPC, subnets, endpoints, security groups, networking, load balancers
+- 🔒 **Infrastructure Security**: Security groups, network ACLs, VPC endpoints, encryption at rest/transit
+- 🎯 **EKS Cluster & Core Backend Services**: Cluster design, node groups, IRSA (IAM Roles for Service Accounts), core backend service architecture
 - 🔗 **Istio Service Mesh**: Ingress gateway, east-west traffic, mTLS, traffic management
+- 📦 **Container & Deployment Services**: ECR (container registry), container image management, deployment pipelines
+- ⚡ **Serverless Compute**: AWS Lambda for general-purpose tasks, event processing, scheduled jobs
+- 💾 **Data Layer**: DynamoDB (transactional), S3 (object storage), Secrets Manager (secrets), RDS (optional relational), data lake (S3 + Glue + Athena)
+- 🔍 **Observability & Monitoring Security**: CloudWatch, GuardDuty, Security Hub, CloudTrail, security monitoring and threat detection
 - 🌐 **Networking**: Route53 → CloudFront → WAF → API Gateway → EKS topology
 - 📊 **SRE Practices**: SLIs, SLOs, error budgets, runbooks, incident response
 
@@ -17,113 +29,34 @@
 
 ## 🌐 Network Topology (North-South Traffic)
 
-```mermaid
-graph TB
-    subgraph "Edge Layer"
-        Route53[Route53<br/>DNS]
-        CloudFront[CloudFront<br/>CDN]
-        WAF[WAF<br/>Web Application Firewall]
-    end
-    
-    subgraph "API Layer"
-        APIGW[API Gateway<br/>REST API]
-        VPCLink[VPC Link<br/>Private Integration]
-    end
-    
-    subgraph "VPC"
-        subgraph "Public Subnets"
-            NLB[NLB/ALB<br/>Load Balancer]
-        end
-        
-        subgraph "Private Subnets"
-            IstioGW[Istio Ingress Gateway]
-        end
-        
-        subgraph "EKS Cluster"
-            BFF[BFF Service]
-            Identity[Identity Service]
-            User[User Service]
-            Billing[Billing Service]
-            Notifications[Notifications Service]
-        end
-    end
-    
-    Route53 --> CloudFront
-    CloudFront --> WAF
-    WAF --> APIGW
-    APIGW --> VPCLink
-    VPCLink --> NLB
-    NLB --> IstioGW
-    IstioGW --> BFF
-    BFF --> Identity
-    BFF --> User
-    BFF --> Billing
-    BFF --> Notifications
-```
+![Network Topology - North South](../images/network-north-south.png)
 
 ### 📊 Traffic Flow
 
 | Layer | Component | Purpose |
 |-------|-----------|---------|
-| **Edge** | Route53 | DNS resolution |
-| **Edge** | CloudFront | CDN, caching, DDoS protection |
-| **Edge** | WAF | Web application firewall, OWASP rules |
-| **API** | API Gateway | REST API, rate limiting, API keys |
-| **API** | VPC Link | Private integration to VPC |
-| **Network** | NLB/ALB | Load balancing |
-| **Mesh** | Istio Ingress Gateway | Service mesh ingress |
-| **Application** | EKS Services | Domain services |
+| **Edge** | Route53 | Global DNS resolution, subdomain routing (tenant.region.example.com), geo-routing, health checks, tenant identification from DNS |
+| **Edge** | CloudFront | Global CDN, static asset caching, DDoS mitigation, SSL/TLS termination (for static content) |
+| **Edge** | WAF | Web application firewall, OWASP Top 10 protection, rate-based rules, bot control (attached to CloudFront/API Gateway) |
+| **API** | API Gateway | REST API management, SSL/TLS termination (primary termination point for API traffic), request throttling, API key authentication, request/response transformation, tenant context extraction |
+| **API** | VPC Link | Private, secure integration between API Gateway and VPC resources without internet exposure (HTTP pass-through) |
+| **Network** | NLB/ALB | Layer 4/7 load balancing, health checks, path-based routing (HTTP pass-through from API Gateway) |
+| **Mesh** | Istio Ingress Gateway | Service mesh entry point, routing rules, mTLS enforcement for east-west traffic, tenant context propagation |
+| **Application** | EKS Services | Domain-driven microservices, business logic execution, tenant-aware processing (tenant validation, tenant context injection, data isolation) |
 
 ---
 
 ## 🔗 Istio Service Mesh (East-West Traffic)
 
-```mermaid
-graph TB
-    subgraph "EKS Cluster"
-        subgraph "istio-system namespace"
-            IstioControlPlane[Istio Control Plane]
-        end
-        
-        subgraph "bff namespace"
-            BFFPod1[BFF Pod 1]
-            BFFPod2[BFF Pod 2]
-        end
-        
-        subgraph "identity namespace"
-            IdentityPod1[Identity Pod 1]
-            IdentityPod2[Identity Pod 2]
-        end
-        
-        subgraph "user namespace"
-            UserPod1[User Pod 1]
-            UserPod2[User Pod 2]
-        end
-        
-        subgraph "billing namespace"
-            BillingPod1[Billing Pod 1]
-            BillingPod2[Billing Pod 2]
-        end
-        
-        subgraph "notifications namespace"
-            NotificationsPod1[Notifications Pod 1]
-            NotificationsPod2[Notifications Pod 2]
-        end
-    end
-    
-    IstioControlPlane -.->|"mTLS STRICT"| BFFPod1
-    IstioControlPlane -.->|"mTLS STRICT"| IdentityPod1
-    IstioControlPlane -.->|"mTLS STRICT"| UserPod1
-    IstioControlPlane -.->|"mTLS STRICT"| BillingPod1
-    IstioControlPlane -.->|"mTLS STRICT"| NotificationsPod1
-    
-    BFFPod1 -->|"mTLS via Istio"| IdentityPod1
-    BFFPod1 -->|"mTLS via Istio"| UserPod1
-    BFFPod1 -->|"mTLS via Istio"| BillingPod1
-    BFFPod1 -->|"mTLS via Istio"| NotificationsPod1
-```
+![Istio Service Mesh](../images/service-mesh.png)
 
-### 🔒 Istio Security Configuration
+### 🎯 Service Mesh Approach
+
+We leverage **Istio service mesh** to provide automatic **mTLS encryption** for all east-west (service-to-service) traffic within the EKS cluster, eliminating the need for manual certificate management and ensuring zero-trust networking. The service mesh enforces **strict mTLS** between all services, provides **fine-grained authorization policies** for service-to-service communication, and enables **observability** through distributed tracing and metrics collection. For this reference architecture, we use a **single EKS cluster** to host all domain services, which simplifies operations, reduces infrastructure overhead, and maintains clear domain boundaries through Kubernetes namespaces. However, the architecture is designed to **scale horizontally**—clusters can be split by domain, region, or tenant if scaling requirements demand it, with Istio's multi-cluster capabilities enabling secure cross-cluster communication.
+
+Our deployment strategy follows a **one container per POD** pattern for operational simplicity, enhanced auditability, and streamlined deployment management. This approach provides clear **resource isolation**, simplifies **security scanning** and **vulnerability management** per service, enables **independent scaling** and **lifecycle management**, and improves **observability** with clear service-to-container mapping. While sidecar patterns (e.g., service mesh proxies) are injected automatically by Istio, the application container remains the primary workload, ensuring clean separation of concerns and easier troubleshooting.
+
+### 🔒 Istio Security Configuration (non Exhaustive Examples)
 
 **PeerAuthentication (mTLS STRICT):**
 ```yaml
@@ -159,48 +92,10 @@ spec:
 
 ## 🎯 EKS Cluster Architecture
 
-```mermaid
-graph TB
-    subgraph "EKS Cluster"
-        subgraph "Control Plane"
-            EKSControlPlane[EKS Control Plane<br/>Managed by AWS]
-        end
-        
-        subgraph "Node Groups"
-            subgraph "Managed Node Group 1"
-                Node1[Node 1<br/>t3.large]
-                Node2[Node 2<br/>t3.large]
-            end
-            
-            subgraph "Managed Node Group 2"
-                Node3[Node 3<br/>t3.large]
-                Node4[Node 4<br/>t3.large]
-            end
-        end
-        
-        subgraph "Namespaces"
-            BFFNS[bff namespace]
-            IdentityNS[identity namespace]
-            UserNS[user namespace]
-            BillingNS[billing namespace]
-            NotificationsNS[notifications namespace]
-        end
-    end
-    
-    EKSControlPlane --> Node1
-    EKSControlPlane --> Node2
-    EKSControlPlane --> Node3
-    EKSControlPlane --> Node4
-    
-    Node1 --> BFFNS
-    Node1 --> IdentityNS
-    Node2 --> UserNS
-    Node2 --> BillingNS
-    Node3 --> NotificationsNS
-    Node4 --> BFFNS
-```
+![Network Topology - North South](../images/eks-cluster.png)
 
-### 📊 EKS Configuration
+
+### 📊 EKS Configuration (non Exhaustive Example)
 
 | Component | Configuration | Purpose |
 |-----------|--------------|---------|
@@ -214,34 +109,7 @@ graph TB
 
 ## 🔄 Traffic Flow (North-South & East-West)
 
-```mermaid
-sequenceDiagram
-    participant User as End User
-    participant Route53 as Route53
-    participant CloudFront as CloudFront
-    participant WAF as WAF
-    participant APIGW as API Gateway
-    participant NLB as NLB
-    participant IstioGW as Istio Ingress Gateway
-    participant BFF as BFF Service
-    participant UserService as User Service
-    
-    User->>Route53: DNS lookup
-    Route53->>CloudFront: Route to CloudFront
-    CloudFront->>WAF: Check WAF rules
-    WAF->>APIGW: Forward to API Gateway
-    APIGW->>NLB: VPC Link to NLB
-    NLB->>IstioGW: Load balance to Istio Gateway
-    IstioGW->>BFF: Route to BFF service
-    BFF->>UserService: mTLS via Istio
-    UserService-->>BFF: Response
-    BFF-->>IstioGW: Response
-    IstioGW-->>NLB: Response
-    NLB-->>APIGW: Response
-    APIGW-->>WAF: Response
-    WAF-->>CloudFront: Response
-    CloudFront-->>User: Response
-```
+![Traffic - Sequence flow](../images/traffic-sequenceflow.png)
 
 ### 📊 Traffic Types
 
@@ -252,28 +120,9 @@ sequenceDiagram
 
 ---
 
-## 🔐 Network Policies
+## 🔐 Network Policies  (defense in depth - all layers protected)
 
-```mermaid
-graph TB
-    subgraph "Default Deny"
-        DefaultDeny[Default NetworkPolicy<br/>Deny All]
-    end
-    
-    subgraph "Allowed Traffic"
-        BFFToIdentity[BFF → Identity<br/>Allowed]
-        BFFToUser[BFF → User<br/>Allowed]
-        BFFToBilling[BFF → Billing<br/>Allowed]
-        BFFToNotifications[BFF → Notifications<br/>Allowed]
-        IstioToAll[Istio System → All<br/>Allowed]
-    end
-    
-    DefaultDeny --> BFFToIdentity
-    DefaultDeny --> BFFToUser
-    DefaultDeny --> BFFToBilling
-    DefaultDeny --> BFFToNotifications
-    DefaultDeny --> IstioToAll
-```
+![Traffic - Sequence flow](../images/network-policy.png)
 
 ### 🛡️ NetworkPolicy Example
 
@@ -306,44 +155,22 @@ spec:
 
 ## 🔐 IAM Roles for Service Accounts (IRSA)
 
-```mermaid
-graph LR
-    subgraph "EKS Cluster"
-        ServiceAccount[Service Account<br/>user-service-sa]
-        Pod[User Service Pod]
-    end
-    
-    subgraph "AWS IAM"
-        IAMRole[IAM Role<br/>user-service-role]
-        Policy[IAM Policy<br/>DynamoDB Access]
-    end
-    
-    subgraph "AWS Services"
-        DynamoDB[(DynamoDB)]
-        S3[(S3)]
-    end
-    
-    ServiceAccount -->|"Assumes"| IAMRole
-    Pod -->|"Uses"| ServiceAccount
-    IAMRole -->|"Grants"| Policy
-    Policy -->|"Allows"| DynamoDB
-    Policy -->|"Allows"| S3
-```
+![IAM Roles](../images/iam-roles.png)
 
 ### 📊 IRSA Configuration
 
 | Service | IAM Role | Permissions |
 |---------|----------|------------|
-| **User Service** | `user-service-role` | DynamoDB read/write (user table) |
-| **Billing Service** | `billing-service-role` | DynamoDB read/write (billing table) |
-| **Notifications Service** | `notifications-service-role` | DynamoDB read/write, SES send email |
+| **User Service** | `user-service-role` | DynamoDB + PostgreSQL read/write (user table) |
+| **Billing Service** | `billing-service-role` | PostgreSQL read/write (billing table) |
+| **Notifications Service** | `notifications-service-role` | PostgreSQL read/write, SES send email |
 | **BFF Service** | `bff-service-role` | No AWS service access (only calls other services) |
 
 ---
 
 ## 📊 SRE Practices
 
-### 🎯 SLIs (Service Level Indicators)
+### 🎯 SLIs (Service Level Indicators) - Examples from the Industry
 
 | SLI | Measurement | Target |
 |-----|-------------|--------|
@@ -353,7 +180,7 @@ graph LR
 | **Error Rate** | 5xx errors / total requests | < 0.1% |
 | **Throughput** | Requests per second | > 1000 RPS |
 
-### 📈 SLOs (Service Level Objectives)
+### 📈 SLOs (Service Level Objectives) - Examples from the Industry
 
 | Service | SLO | Error Budget |
 |---------|-----|--------------|
