@@ -17,36 +17,7 @@
 
 ## 🏛️ System Context (C4 Level 1)
 
-```mermaid
-C4Context
-    title System Context - Multi-Tenant SaaS Platform
-    
-    Person(endUsers, "End Users", "Multi-tenant SaaS customers accessing the platform")
-    Person(tenantAdmins, "Tenant Administrators", "Managing tenant configuration and users")
-    Person(platformAdmins, "Platform Administrators", "Managing platform infrastructure")
-    
-    System(saasPlatform, "Multi-Tenant SaaS Platform", "AWS-based SaaS platform with DDD, EKS, Istio")
-    
-    System_Ext(authProvider, "OAuth Provider", "External identity provider (e.g., Okta, Auth0)")
-    System_Ext(paymentGateway, "Payment Gateway", "External payment processing (e.g., Stripe)")
-    System_Ext(emailService, "Email Service", "External email delivery (e.g., SES, SendGrid)")
-    
-    SystemDb(eventbridge, "EventBridge", "AWS EventBridge for domain events")
-    SystemDb(dynamodb, "DynamoDB", "AWS DynamoDB for tenant-isolated operational data")
-    SystemDb(s3Lake, "S3 Data Lake", "AWS S3 for analytics, ML, and data products")
-    
-    Rel(endUsers, saasPlatform, "Uses", "HTTPS/REST")
-    Rel(tenantAdmins, saasPlatform, "Manages", "HTTPS/REST")
-    Rel(platformAdmins, saasPlatform, "Administers", "HTTPS/CLI")
-    
-    Rel(saasPlatform, authProvider, "Validates identity", "OAuth 2.0")
-    Rel(saasPlatform, paymentGateway, "Processes payments", "HTTPS/REST")
-    Rel(saasPlatform, emailService, "Sends emails", "HTTPS/REST")
-    
-    Rel(saasPlatform, eventbridge, "Publishes domain events", "EventBridge API")
-    Rel(saasPlatform, dynamodb, "Reads/Writes tenant data", "DynamoDB API")
-    Rel(saasPlatform, s3Lake, "Writes analytics data", "S3 API")
-```
+![Context Solution View](../images/context-diagram.png)
 
 ### 🎯 Key Actors
 
@@ -61,108 +32,23 @@ C4Context
 
 ---
 
-## 📊 Technology Stack
+## 📊 Technology Stack - Few Important Services
 
-```mermaid
-graph TB
-    subgraph "Frontend Layer"
-        React[React + TypeScript]
-        Vite[Vite Build Tool]
-    end
-    
-    subgraph "API Layer"
-        BFF[BFF - Node.js + Express]
-    end
-    
-    subgraph "Application Layer"
-        Identity[Identity Service]
-        User[User Service]
-        Billing[Billing Service]
-        Notifications[Notifications Service]
-    end
-    
-    subgraph "Platform Layer"
-        EKS[EKS Cluster]
-        Istio[Istio Service Mesh]
-        K8s[Kubernetes Namespaces]
-    end
-    
-    subgraph "Data Layer"
-        DynamoDB[DynamoDB - Operational Data]
-        S3[S3 - Data Lake]
-        EventBridge[EventBridge - Events]
-        SQS[SQS - Event Consumers]
-    end
-    
-    subgraph "Infrastructure Layer"
-        Route53[Route53 - DNS]
-        CloudFront[CloudFront - CDN]
-        WAF[WAF - Web Application Firewall]
-        APIGW[API Gateway]
-        VPC[VPC - Networking]
-    end
-    
-    subgraph "Observability Layer"
-        OpenTelemetry[OpenTelemetry]
-        CloudWatch[CloudWatch Logs]
-        Prometheus[Prometheus Metrics]
-        Grafana[Grafana Dashboards]
-    end
-    
-    React --> BFF
-    BFF --> Identity
-    BFF --> User
-    BFF --> Billing
-    BFF --> Notifications
-    
-    Identity --> EKS
-    User --> EKS
-    Billing --> EKS
-    Notifications --> EKS
-    
-    EKS --> Istio
-    EKS --> K8s
-    
-    Identity --> DynamoDB
-    User --> DynamoDB
-    Billing --> DynamoDB
-    Notifications --> DynamoDB
-    
-    Identity --> EventBridge
-    User --> EventBridge
-    Billing --> EventBridge
-    
-    EventBridge --> SQS
-    SQS --> Notifications
-    
-    BFF --> APIGW
-    APIGW --> WAF
-    WAF --> CloudFront
-    CloudFront --> Route53
-    
-    Identity --> OpenTelemetry
-    User --> OpenTelemetry
-    Billing --> OpenTelemetry
-    Notifications --> OpenTelemetry
-    
-    OpenTelemetry --> CloudWatch
-    OpenTelemetry --> Prometheus
-    Prometheus --> Grafana
-```
+![Tech Stack](../images/tech-stack.png)
 
 ### 🛠️ Technology Choices
 
 | Layer | Technology | Rationale |
 |-------|------------|-----------|
-| **Frontend** | React + TypeScript | Modern, type-safe, component-based UI |
-| **BFF** | Node.js + Express | API aggregation, tenant context propagation |
-| **Backend** | Node.js + TypeScript | Consistent stack, type safety, microservices |
-| **Platform** | EKS + Istio | Managed Kubernetes, service mesh for mTLS |
-| **Data** | DynamoDB | Serverless, scalable, tenant partitioning |
-| **Events** | EventBridge + SQS | AWS-native, no Kafka complexity, fanout pattern |
-| **Analytics** | S3 + Glue + Athena | Data lake pattern, serverless analytics |
-| **IaC** | Terraform | Infrastructure as code, version control |
-| **Observability** | OpenTelemetry | Vendor-neutral, distributed tracing |
+| **Frontend** | React + TypeScript | Modern, type-safe, component-based UI with rich ecosystem |
+| **BFF** | Node.js + Express | Lightweight API aggregation, efficient tenant context propagation |
+| **Backend** | Node.js + TypeScript | Consistent stack, type safety, developer productivity for microservices |
+| **Platform** | EKS + Istio | Managed Kubernetes scalability, service mesh for automatic mTLS |
+| **Data** | DynamoDB | Serverless, auto-scaling, cost-effective tenant partitioning |
+| **Events** | EventBridge + SQS | AWS-native simplicity, no Kafka ops overhead, reliable fanout |
+| **Analytics** | S3 + Glue + Athena | Cost-effective data lake, serverless analytics at scale |
+| **IaC** | Terraform | Industry-standard IaC, version control, multi-cloud support |
+| **Observability** | OpenTelemetry | Vendor-neutral standard, distributed tracing, future-proof |
 
 ---
 
@@ -197,75 +83,6 @@ graph TB
 - 🎨 **Visual Diagrams**: Comprehensive Mermaid diagrams across all documents
 - 🔗 **Cross-References**: All documents linked and cross-referenced
 - 📚 **Architecture Reference**: Clear architecture principles and decisions documented
-
----
-
-## 🚫 Non-Goals
-
-- ❌ **Code Implementation**: This is documentation-only; no actual code
-- ❌ **Full Production System**: Reference architecture, not production deployment
-- ❌ **All AWS Services**: Focus on core services; not exhaustive AWS coverage
-- ❌ **Specific Business Domain**: Generic patterns applicable to any multi-tenant SaaS
-
----
-
----
-
-## 🚀 Next Steps for Implementation
-
-### 📋 Implementation Roadmap
-
-1. **🏗️ Infrastructure Setup**
-   - ✅ Terraform modules for VPC, EKS, networking
-   - ✅ EKS cluster with node groups and IRSA
-   - ✅ Istio installation and configuration
-
-2. **🔐 Security Foundation**
-   - ✅ WAF rules and API Gateway policies
-   - ✅ IAM roles and IRSA for services
-   - ✅ Secrets management (Secrets Manager, SSM)
-
-3. **⚙️ Backend Services**
-   - ✅ Domain services (identity, user, billing, notifications)
-   - ✅ BFF service with tenant context middleware
-   - ✅ Event adapters (EventBridge publisher, SQS consumer)
-
-4. **🎨 Frontend**
-   - ✅ React app with tenant selection
-   - ✅ BFF client integration
-   - ✅ Pages for Users, Billing, Notifications
-
-5. **📊 Observability**
-   - ✅ OpenTelemetry instrumentation
-   - ✅ CloudWatch logs and Prometheus metrics
-   - ✅ Grafana dashboards and SLO definitions
-
-6. **🔄 CI/CD**
-   - ✅ GitHub Actions workflows
-   - ✅ Docker image builds and ECR pushes
-   - ✅ Terraform plan/apply automation
-
-7. **💾 Data Platform**
-   - ✅ DynamoDB tables per domain
-   - ✅ S3 buckets for data lake
-   - ✅ Glue catalog and Athena queries
-
-8. **🧪 Testing**
-   - ✅ Unit tests for services
-   - ✅ Integration tests for event flows
-   - ✅ Contract tests for APIs
-
-9. **📈 Performance**
-   - ✅ Load testing and optimization
-   - ✅ Caching strategies
-   - ✅ Database query optimization
-
-10. **✅ Production Hardening**
-    - ✅ Real JWT validation (not simulated)
-    - ✅ Real EventBridge integration (not console.log)
-    - ✅ Comprehensive error handling
-    - ✅ Disaster recovery procedures
-    - ✅ Cost optimization
 
 ---
 

@@ -27,36 +27,7 @@ aws-multitenant-saas-reference/
 
 ## 🏛️ Architecture in One Picture
 
-```mermaid
-C4Context
-    title System Context - Multi-Tenant SaaS Platform
-    
-    Person(endUsers, "End Users", "Multi-tenant SaaS customers")
-    Person(tenantAdmins, "Tenant Administrators", "Manage and configure users")
-    Person(platformAdmins, "Platform Administrators", "Manage platform & infrastructure")
-    
-    System(saasPlatform, "Multi-Tenant SaaS Platform", "SaaS platform delivering business capabilities through DDD, EDA and composable services & Apps")
-    
-    System_Ext(authProvider, "OAuth Provider", "External identity provider")
-    System_Ext(paymentGateway, "Payment Gateway", "External Integration example")
-    System_Ext(emailService, "Email Service", "Other System/Service Capability Composable example")
-    
-    SystemDb(dynamodb, "DB Services (KV, Relational, Doc)", "AWS DynamoDB for tenant-isolated transactional data")
-    SystemDb(eventbridge, "EDA", "AWS messaging services for domain events and EDA")
-    SystemDb(s3Lake, "Data Lake", "Lakehouse for analytics, ML, and data products (Glue, Athena, SageMaker)")
-    
-    Rel(endUsers, saasPlatform, "Uses", "HTTPS/REST")
-    Rel(tenantAdmins, saasPlatform, "Manages", "HTTPS/REST")
-    Rel(platformAdmins, saasPlatform, "Administers", "HTTPS/CLI")
-    
-    Rel(saasPlatform, authProvider, "Validates identity", "OAuth 2.0")
-    Rel(saasPlatform, paymentGateway, "Processes payments", "HTTPS/REST")
-    Rel(saasPlatform, emailService, "Sends emails", "HTTPS/REST")
-    
-    Rel(saasPlatform, dynamodb, "Reads/Writes", "AWS DB Services")
-    Rel(saasPlatform, eventbridge, "Publishes events", "Async AWS Svcs")
-    Rel(saasPlatform, s3Lake, "Writes analytics", "CDC, S3, Streaming")
-```
+![Context Solution View](./images/context-diagram.png)
 
 ---
 
