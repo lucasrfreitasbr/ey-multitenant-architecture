@@ -7,11 +7,11 @@
 
 ## 🌍 Multi-Country Multi-Tenant Isolation Architecture
 
-This architecture enforces **strict geographic and tenant isolation** to ensure **data residency compliance** with regulations such as GDPR, data localization laws, and country-specific requirements. We implement **complete isolation at multiple layers**—infrastructure level (separate EKS clusters and Aurora PostgreSQL clusters per country) and application level (DNS routing, IAM policies, geo-validation middleware)—creating a **defense-in-depth approach** that prevents any cross-country or cross-tenant data access.
+This architecture enforces **strict geographic and tenant isolation** to ensure **data residency compliance** with regulations such as GDPR, data localization laws, and country-specific requirements. We implement **complete isolation at multiple layers**—infrastructure level (separate EKS clusters and database clusters per country) and application level (DNS routing, IAM policies, geo-validation middleware)—creating a **defense-in-depth approach** that prevents any cross-country or cross-tenant data access.
 
-The platform uses **country-based subdomain routing** where each tenant is identified by a subdomain pattern: `{tenant_id}.{country_code}.example.com` (e.g., `acme.us.example.com`, `acme.br.example.com`). Route53 performs **geo-routing** to direct requests to the correct country infrastructure, while **geo-validation middleware** and **IAM policies** work together to block access attempts from users outside their authorized country, even if they have valid IAM permissions. This ensures that data never crosses geographic boundaries and tenants can only access their own isolated databases within their designated country.
+The platform uses **country-based subdomain routing** where each tenant is identified by a subdomain pattern: `{tenant_id}.{country_code}.example.com` (e.g., `acme.us.example.com`, `acme.br.example.com`). Route53 performs **geo-routing** to direct requests to the correct country infrastructure, while **geo-validation middleware** and **IAM policies** work together to block access attempts from users outside their authorized country, even if they have valid IAM permissions. This ensures that data never crosses geographic boundaries and tenants can only access their own isolated clusters within their designated country.
 
-Each country maintains **completely isolated infrastructure**: separate EKS clusters for compute, separate Aurora PostgreSQL clusters for data storage, and independent networking. Within each country, tenants are further isolated through **dedicated databases per tenant** (e.g., `user_db_tenant_001`, `user_db_tenant_002`) within the country's Aurora cluster. This **shared compute, isolated data** model provides strong security guarantees while maintaining operational efficiency and cost-effectiveness.
+Each country maintains **completely isolated infrastructure**: separate EKS clusters for compute, separate database clusters (Aurora PostgreSQL, DocumentDB) per tenant per country, and independent networking. Each tenant has its **own dedicated database cluster per country** (e.g., `tenant_001_cluster_us`, `tenant_002_cluster_us`), with **domains as separate databases** within each tenant cluster (e.g., `identity_db`, `user_db`, `billing_db`). This **one cluster per tenant** model provides **complete physical isolation** while maintaining operational efficiency through shared compute resources within each tenant cluster.
 
 ### 🗺️ Country-Level Isolation Architecture
 
@@ -39,8 +39,8 @@ The following sequence diagram illustrates the complete access control flow, sho
 
 | Isolation Layer | Mechanism | Purpose |
 |----------------|-----------|---------|
-| **Country Isolation** | Separate EKS clusters, Aurora clusters per country | Data residency compliance, regulatory requirements |
-| **Tenant Isolation** | Separate databases per tenant, subdomain routing | Data sovereignty, tenant data separation |
+| **Country Isolation** | Separate EKS clusters, database clusters per country | Data residency compliance, regulatory requirements |
+| **Tenant Isolation** | One cluster per tenant, domains as databases, subdomain routing | Complete physical isolation, data sovereignty |
 | **Geographic Access Control** | IAM policies + WAF geo-blocking + geo-validation middleware | Prevent cross-country access, enforce data residency |
 | **DNS Routing** | Route53 with country-based subdomains | Route to correct country infrastructure, tenant identification |
 
@@ -48,9 +48,9 @@ The following sequence diagram illustrates the complete access control flow, sho
 
 ## 🏢 Tenant Architecture Overview
 
-Building upon the **country-level isolation** foundation, our **tenant architecture** implements **complete database isolation per tenant** within each country's infrastructure. Each tenant operates within a **dedicated database** (e.g., `user_db_tenant_001`, `billing_db_tenant_001`) within the country's Aurora PostgreSQL cluster, ensuring **strong data sovereignty** and **regulatory compliance** at the tenant level. The architecture follows **Domain-Driven Design (DDD)** principles, mapping each **bounded context** to a Kubernetes namespace, enabling **independent deployment**, **resource isolation**, and **clear domain boundaries**.
+Building upon the **country-level isolation** foundation, our **tenant architecture** implements **complete physical isolation per tenant** within each country's infrastructure. Each tenant has its **own dedicated database cluster per country** (e.g., `tenant_001_cluster_us`, `tenant_002_cluster_us`), with **domains as separate databases** within each tenant cluster (e.g., `identity_db`, `user_db`, `billing_db`, `notifications_db`). This ensures **strong data sovereignty** and **regulatory compliance** at the tenant level. The architecture follows **Domain-Driven Design (DDD)** principles, mapping each **bounded context** to a Kubernetes namespace, enabling **independent deployment**, **resource isolation**, and **clear domain boundaries**.
 
-Tenants are identified through **subdomain routing** (`{tenant_id}.{country_code}.example.com`), which enables automatic **connection routing** to the correct tenant database based on the `tenant_id` extracted from the JWT token. The application implements **tenant-aware connection pooling**, where each tenant has its own connection pool that routes to the tenant's isolated database. This **shared compute, isolated data** model provides **strongest isolation** while maintaining **operational efficiency**—compute resources (EKS clusters, pods) are shared across tenants within a country, while data remains completely isolated at the database level.
+Tenants are identified through **subdomain routing** (`{tenant_id}.{country_code}.example.com`), which enables automatic **connection routing** to the correct tenant cluster and domain database based on the `tenant_id` and `domain` extracted from the JWT token and service context. The application implements **tenant-aware and domain-aware connection pooling**, where each tenant-domain combination has its own connection pool that routes to the tenant's isolated cluster and domain database. This **one cluster per tenant** model provides **complete physical isolation** while maintaining **operational efficiency**—compute resources (EKS clusters, pods) are shared across tenants within a country, while data remains completely isolated at the cluster level.
 
 The tenant architecture leverages **event-driven communication** via EventBridge and SQS to enable **loose coupling** between domain services, with **outbox/inbox patterns** ensuring reliable event publishing and idempotent consumption. **CQRS (Command Query Responsibility Segregation)** enables independent scaling of read and write workloads through Aurora read replicas, while **Istio service mesh** provides automatic mTLS encryption for all service-to-service communication, ensuring **zero-trust networking** within the tenant's namespace boundaries.
 
@@ -95,7 +95,7 @@ The tenant architecture leverages **event-driven communication** via EventBridge
 | **BFF** | Node.js + Express | Lightweight API aggregation, efficient tenant context propagation |
 | **Backend** | Node.js + TypeScript | Consistent stack, type safety, developer productivity for microservices |
 | **Platform** | EKS + Istio | Managed Kubernetes scalability, service mesh for automatic mTLS |
-| **Data** | Aurora PostgreSQL | Managed relational database, ACID guarantees, read replicas, full database isolation per tenant |
+| **Data** | Aurora PostgreSQL, DocumentDB, DynamoDB | Managed databases with one cluster per tenant, domains as databases, physical isolation |
 | **Events** | EventBridge + SQS | AWS-native simplicity, no Kafka ops overhead, reliable fanout |
 | **Analytics** | S3 + Glue + Athena | Cost-effective data lake, serverless analytics at scale |
 | **IaC** | Terraform | Industry-standard IaC, version control, multi-cloud support |
@@ -107,13 +107,13 @@ The tenant architecture leverages **event-driven communication** via EventBridge
 
 1. **✅ Domain-Driven Design (DDD)**: Bounded contexts mapped to K8s namespaces for clear domain boundaries
 2. **✅ Event-Driven Architecture**: EventBridge + SQS instead of Kafka for AWS-native simplicity
-3. **✅ Multi-Tenancy**: Full database isolation per tenant (Aurora PostgreSQL), separate databases per tenant within country clusters
-4. **✅ Multi-Country Isolation**: Separate EKS clusters and Aurora clusters per country, geo-routing, geographic access control
+3. **✅ Multi-Tenancy**: One cluster per tenant (Aurora PostgreSQL, DocumentDB), domains as separate databases within tenant cluster, physical isolation
+4. **✅ Multi-Country Isolation**: Separate EKS clusters and database clusters per country, one cluster per tenant per country, geo-routing, geographic access control
 5. **✅ Service Mesh**: Istio for automatic mTLS, traffic management, and observability
 6. **✅ BFF Pattern**: Single backend entry point for frontend, aggregates APIs, enforces security
 7. **✅ Zero Trust Security**: Defense in depth with multiple security layers
 8. **✅ OpenTelemetry**: Vendor-neutral observability with distributed tracing
-9. **✅ AWS-Native**: Leverage managed services (EKS, EventBridge, Aurora PostgreSQL) for operational simplicity
+9. **✅ AWS-Native**: Leverage managed services (EKS, EventBridge, Aurora PostgreSQL, DocumentDB, DynamoDB) for operational simplicity
 10. **✅ Terraform IaC**: Infrastructure as code for reproducibility and version control
 11. **✅ Composable Architecture**: Lower-level domains compose into higher-level business capabilities
 

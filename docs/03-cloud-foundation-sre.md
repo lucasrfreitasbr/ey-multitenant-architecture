@@ -20,7 +20,7 @@ This cloud foundation follows **cloud-native architecture principles** and **com
 - 🔗 **Istio Service Mesh**: Ingress gateway, east-west traffic, mTLS, traffic management
 - 📦 **Container & Deployment Services**: ECR (container registry), container image management, deployment pipelines
 - ⚡ **Serverless Compute**: AWS Lambda for general-purpose tasks, event processing, scheduled jobs
-- 💾 **Data Layer**: DynamoDB (transactional), S3 (object storage), Secrets Manager (secrets), RDS (optional relational), data lake (S3 + Glue + Athena)
+- 💾 **Data Layer**: Aurora PostgreSQL (one cluster per tenant, domains as databases), DocumentDB (one cluster per tenant, domains as databases), DynamoDB (separate tables per tenant), S3 (object storage), Secrets Manager (secrets), data lake (S3 + Glue + Athena)
 - 🔍 **Observability & Monitoring Security**: CloudWatch, GuardDuty, Security Hub, CloudTrail, security monitoring and threat detection
 - 🌐 **Networking**: Route53 → CloudFront → WAF → API Gateway → EKS topology
 - 📊 **SRE Practices**: SLIs, SLOs, error budgets, runbooks, incident response
@@ -210,7 +210,7 @@ spec:
 
 ## 💡 Key Decisions
 
-1. **✅ AWS-Native Services**: Leverage managed services (EKS, EventBridge, DynamoDB) for operational simplicity
+1. **✅ AWS-Native Services**: Leverage managed services (EKS, EventBridge, Aurora PostgreSQL, DocumentDB, DynamoDB) for operational simplicity
 2. **✅ Istio Service Mesh**: Automatic mTLS, traffic management, observability
 3. **✅ Defense in Depth**: Multiple security layers (WAF, API Gateway, Istio, NetworkPolicies)
 4. **✅ IRSA**: IAM Roles for Service Accounts for least-privilege AWS access

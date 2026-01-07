@@ -163,11 +163,11 @@ CREATE UNIQUE INDEX idx_inbox_event_id ON inbox(event_id);
 
 Our data isolation follows a **shared compute, isolated data** architecture ensuring both **domain separation** and **strong tenant isolation**:
 
-1. **Different Databases per Domain**: Each bounded context maintains its **own dedicated Aurora PostgreSQL cluster** (e.g., Identity DB, User DB, Billing DB, Notifications DB). This provides **clear domain boundaries**, **independent scaling**, and **isolated failure domains**.
+1. **One Cluster Per Tenant**: Each tenant has its **own dedicated Aurora PostgreSQL cluster per country** (e.g., `tenant_001_cluster_us`, `tenant_002_cluster_us`). This provides **complete physical isolation** at the cluster level, ensuring **strongest isolation**, **regulatory compliance**, and **data sovereignty**.
 
-2. **Full Database Isolation per Tenant**: Within each domain, we implement **complete database isolation** by creating **separate databases per tenant** within the Aurora PostgreSQL cluster. Each tenant has its own dedicated database (e.g., `user_db_tenant_001`, `user_db_tenant_002`), providing **strongest isolation**, **regulatory compliance**, and **data sovereignty**. The application routes database connections based on the `tenant_id` extracted from the JWT token.
+2. **Domains as Separate Databases**: Within each tenant cluster, we implement **domain separation** by creating **separate databases per domain** (e.g., `identity_db`, `user_db`, `billing_db`, `notifications_db`). This provides **clear domain boundaries** within the tenant's isolated cluster while maintaining **operational efficiency** through shared compute resources.
 
-3. **Country-Level Database Clusters**: For **data residency** and **regulatory compliance** (GDPR, data localization laws), we deploy **separate Aurora PostgreSQL clusters per country/region** (e.g., US cluster, BR cluster), ensuring data never crosses geographic boundaries.
+3. **Country-Level Isolation**: For **data residency** and **regulatory compliance** (GDPR, data localization laws), we deploy **separate Aurora PostgreSQL clusters per country/region** (e.g., US clusters, BR clusters), ensuring data never crosses geographic boundaries.
 
 ### 📊 Aurora PostgreSQL Database Isolation Model
 
@@ -175,44 +175,46 @@ Our data isolation follows a **shared compute, isolated data** architecture ensu
 
 ### ✅ Data Isolation Strategy
 
-- **Domain Isolation**: Each bounded context has its own Aurora PostgreSQL cluster (Identity cluster, User cluster, Billing cluster, etc.)
-- **Full Database Isolation**: Each tenant has a dedicated database within the domain cluster (e.g., `user_db_tenant_001`, `billing_db_tenant_001`)
-- **Connection Routing**: Application routes database connections based on `tenant_id` from JWT, ensuring tenants can only access their own database
-- **Access Control**: Database-level access control with tenant-specific credentials and connection pooling per tenant
-- **Data Residency**: Separate Aurora clusters per country/region (US cluster, BR cluster) for regulatory compliance
-- **Shared Compute**: Aurora cluster provides shared compute resources while maintaining complete data isolation
+- **Tenant Isolation**: Each tenant has its own dedicated Aurora PostgreSQL cluster per country (e.g., `tenant_001_cluster_us`, `tenant_002_cluster_us`)
+- **Domain Isolation**: Within each tenant cluster, domains are separate databases (e.g., `identity_db`, `user_db`, `billing_db`)
+- **Connection Routing**: Application routes database connections based on `tenant_id` + `domain` + `country_partition` from JWT, ensuring tenants can only access their own cluster and domains
+- **Access Control**: Database-level access control with tenant-specific credentials and connection pooling per tenant-domain
+- **Data Residency**: Separate Aurora clusters per country/region (US clusters, BR clusters) for regulatory compliance
+- **Shared Compute**: Aurora cluster provides shared compute resources within tenant cluster while maintaining complete data isolation
 
-### 🔌 Connection Pooling & Tenant-Based Database Routing
+### 🔌 Connection Pooling & Tenant-Domain-Based Database Routing
 
-The application implements **tenant-aware connection pooling** to route database connections to the correct tenant database based on the `tenant_id` extracted from the JWT token. Each service maintains a **connection pool manager** that creates and caches database connections per tenant, ensuring efficient resource usage while maintaining complete data isolation.
+The application implements **tenant-aware and domain-aware connection pooling** to route database connections to the correct tenant cluster and domain database based on the `tenant_id`, `domain`, and `country_partition` extracted from the JWT token and service context. Each service maintains a **connection pool manager** that creates and caches database connections per tenant-domain combination, ensuring efficient resource usage while maintaining complete data isolation.
 
 **Connection Pool Strategy**:
-- **Per-Tenant Connection Pools**: Each tenant has its own dedicated connection pool (e.g., `pool_tenant_001`, `pool_tenant_002`)
-- **Lazy Initialization**: Connection pools are created on-demand when first accessed by a tenant
+- **Per-Tenant-Domain Connection Pools**: Each tenant-domain combination has its own dedicated connection pool (e.g., `pool_us_tenant_001_user`, `pool_us_tenant_001_billing`)
+- **Lazy Initialization**: Connection pools are created on-demand when first accessed by a tenant-domain combination
 - **Connection Caching**: Pools are cached in memory to avoid repeated connection establishment
-- **Pool Size Configuration**: Configurable pool size per tenant (e.g., min: 2, max: 10 connections per tenant)
-- **Connection String Pattern**: `postgresql://user_service:password@aurora-cluster-endpoint:5432/user_db_tenant_{tenant_id}`
+- **Pool Size Configuration**: Configurable pool size per tenant-domain (e.g., min: 2, max: 10 connections per tenant-domain)
+- **Connection String Pattern**: `postgresql://user:pass@{tenant_id}_cluster_{country}:5432/{domain}_db`
 
-**Tenant-Based Routing Flow**:
-1. **Extract Tenant Context**: Middleware extracts `tenant_id` from JWT token and validates `country_partition`
-2. **Get Connection Pool**: Service requests connection from pool manager using `tenant_id`
-3. **Route to Database**: Pool manager routes to tenant-specific database (e.g., `user_db_tenant_001`)
-4. **Execute Query**: All read/write operations execute against the tenant's isolated database
-5. **Return Connection**: Connection returned to pool for reuse
+**Tenant-Domain-Based Routing Flow**:
+1. **Extract Context**: Middleware extracts `tenant_id`, `country_partition`, and `domain` from JWT token and service context
+2. **Get Connection Pool**: Service requests connection from pool manager using `tenant_id` + `domain` + `country_partition`
+3. **Route to Cluster**: Pool manager routes to tenant-specific cluster (e.g., `tenant_001_cluster_us`)
+4. **Route to Database**: Within cluster, route to domain-specific database (e.g., `user_db`)
+5. **Execute Query**: All read/write operations execute against the tenant's isolated domain database
+6. **Return Connection**: Connection returned to pool for reuse
 
 **Implementation Pattern** (Pseudo-code):
 ```typescript
 // Connection Pool Manager
-class TenantConnectionPoolManager {
+class TenantDomainConnectionPoolManager {
   private pools: Map<string, Pool> = new Map();
   
-  getConnection(tenantId: string, countryPartition: string): Pool {
-    const dbName = `user_db_tenant_${tenantId}`;
-    const poolKey = `${countryPartition}_${tenantId}`;
+  getConnection(tenantId: string, domain: string, countryPartition: string): Pool {
+    const clusterEndpoint = `${tenantId}_cluster_${countryPartition.toLowerCase()}`;
+    const dbName = `${domain}_db`;
+    const poolKey = `${countryPartition}_${tenantId}_${domain}`;
     
     if (!this.pools.has(poolKey)) {
       const connectionString = 
-        `postgresql://user:pass@aurora-cluster:5432/${dbName}`;
+        `postgresql://user:pass@${clusterEndpoint}:5432/${dbName}`;
       this.pools.set(poolKey, new Pool({
         connectionString,
         min: 2,
@@ -226,8 +228,8 @@ class TenantConnectionPoolManager {
 }
 
 // Service Usage
-async function getUser(tenantId: string, userId: string) {
-  const pool = connectionPoolManager.getConnection(tenantId, 'US');
+async function getUser(tenantId: string, userId: string, countryPartition: string) {
+  const pool = connectionPoolManager.getConnection(tenantId, 'user', countryPartition);
   const result = await pool.query(
     'SELECT * FROM users WHERE id = $1', 
     [userId]
@@ -237,11 +239,12 @@ async function getUser(tenantId: string, userId: string) {
 ```
 
 **Benefits**:
-- **Automatic Isolation**: Tenants can only access their own database through connection routing
-- **Resource Efficiency**: Shared connection pool infrastructure with per-tenant isolation
-- **Performance**: Connection reuse reduces connection establishment overhead
-- **Scalability**: Pools scale independently per tenant based on load
-- **Security**: No risk of cross-tenant data access at the database level
+- **✅ Complete Physical Isolation**: Tenants have dedicated clusters, no shared infrastructure
+- **✅ Domain Separation**: Clear boundaries between domains within tenant cluster
+- **✅ Resource Efficiency**: Shared compute within tenant cluster while maintaining data isolation
+- **✅ Performance**: Connection reuse reduces connection establishment overhead
+- **✅ Scalability**: Pools scale independently per tenant-domain based on load
+- **✅ Security**: No risk of cross-tenant or cross-domain data access at the database level
 
 ---
 
@@ -277,13 +280,13 @@ async function getUser(tenantId: string, userId: string) {
 2. **✅ Event-Driven Communication**: EventBridge + SQS for loose coupling, eventual consistency, no direct service calls
 3. **✅ Outbox Pattern**: Reliable event publishing with transactional guarantees, no event loss
 4. **✅ Inbox Pattern**: Deduplication and idempotent event processing, audit trail
-5. **✅ Different Databases per Domain**: Each bounded context maintains its own Aurora PostgreSQL cluster for domain isolation and independent scaling
-6. **✅ Full Database Isolation per Tenant**: Separate databases per tenant within each domain cluster (shared compute, isolated data) for strongest isolation and compliance
+5. **✅ One Cluster Per Tenant**: Each tenant has its own dedicated Aurora PostgreSQL cluster per country for complete physical isolation
+6. **✅ Domains as Databases**: Within each tenant cluster, domains are separate databases (shared compute, isolated data) for domain separation and compliance
 7. **✅ Aurora PostgreSQL as Default**: Relational database with ACID guarantees, SQL support, and managed service benefits
 8. **✅ Data Residency**: Separate Aurora clusters per country/region for regulatory compliance and data localization
-9. **✅ Connection Routing**: Application-level database connection routing based on tenant_id for automatic tenant isolation
+9. **✅ Connection Routing**: Application-level database connection routing based on tenant_id + domain + country_partition for automatic tenant and domain isolation
 10. **✅ Command/Query Separation**: Clear separation of write and read operations, CQRS patterns
-11. **✅ Tenant Context Middleware**: Automatic tenant extraction, validation, database routing, and context propagation
+11. **✅ Tenant Context Middleware**: Automatic tenant and domain extraction, validation, cluster and database routing, and context propagation
 12. **✅ Istio mTLS**: All service-to-service communication encrypted and authenticated, zero-trust networking
 
 ---
