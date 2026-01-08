@@ -1,7 +1,7 @@
 # 🔄 DevSecOps
 ## 🚀 CI/CD Pipelines, Shift-Left Security & Automation
 
-> **📖 Purpose**: This document describes the CI/CD pipeline architecture, shift-left security model, automated scanning (SAST, SCA, IaC, container), GitHub Actions workflows, and DevSecOps best practices.
+> **📖 Purpose**: This document describes the CI/CD pipeline architecture, shift-left security model, automated scanning (SAST, DAST SCA, IaC, container, DAST), GitHub Actions workflows, and DevSecOps best practices.
 
 ---
 
@@ -9,7 +9,7 @@
 
 - 🚀 **CI/CD Pipeline Architecture**: GitHub Actions workflows, build, test, deploy
 - ⬅️ **Shift-Left Security**: Security checks early in development lifecycle
-- 🔍 **Security Scanning**: SAST, SCA, IaC scanning, container scanning
+- 🔍 **Security Scanning**: SAST, SCA, IaC scanning, container scanning, DAST
 - 🤖 **Automation**: Automated testing, building, deployment
 - 📦 **Supply Chain Security**: SBOM generation, signing, vulnerability scanning
 
@@ -17,40 +17,7 @@
 
 ## 🚀 CI/CD Pipeline (PR → Main)
 
-```mermaid
-graph TB
-    subgraph "Pull Request"
-        PR[Pull Request Created]
-        Lint[Lint Code]
-        Test[Run Tests]
-        TypeCheck[TypeScript Check]
-        SAST[SAST Scan]
-        SCA[SCA Scan]
-        IaCScan[IaC Scan]
-        ContainerScan[Container Scan]
-    end
-    
-    subgraph "Main Branch"
-        Build[Build Docker Images]
-        PushECR[Push to ECR]
-        TerraformPlan[Terraform Plan]
-        TerraformApply[Terraform Apply]
-        DeployK8s[Deploy to K8s]
-    end
-    
-    PR --> Lint
-    Lint --> Test
-    Test --> TypeCheck
-    TypeCheck --> SAST
-    SAST --> SCA
-    SCA --> IaCScan
-    IaCScan --> ContainerScan
-    ContainerScan -->|"Merge to Main"| Build
-    Build --> PushECR
-    PushECR --> TerraformPlan
-    TerraformPlan --> TerraformApply
-    TerraformApply --> DeployK8s
-```
+![CI/CD Pipeline](../images/cicd-pipe.png)
 
 ### 📊 Pipeline Stages
 
@@ -66,44 +33,15 @@ graph TB
 | **Build** | Docker image build | Docker | Main |
 | **Push ECR** | Push to AWS ECR | AWS CLI | Main |
 | **Terraform** | Infrastructure deployment | Terraform | Main |
-| **Deploy K8s** | Kubernetes deployment | kubectl, Helm | Main |
+| **Deploy Staging** | Deploy to staging environment | kubectl, Helm | Main |
+| **DAST** | Dynamic application security testing | OWASP ZAP, Burp Suite | After staging deployment |
+| **Deploy Production** | Deploy to production | kubectl, Helm | After DAST passes |
 
 ---
 
 ## ⬅️ Shift-Left Security
 
-```mermaid
-graph LR
-    subgraph "Development"
-        Code[Write Code]
-        LocalScan[Local Security Scan]
-        Commit[Commit Code]
-    end
-    
-    subgraph "Pull Request"
-        PRScan[PR Security Checks]
-        Review[Code Review]
-    end
-    
-    subgraph "Main Branch"
-        BuildScan[Build-time Security Scan]
-        DeployScan[Deploy-time Security Scan]
-    end
-    
-    subgraph "Production"
-        RuntimeScan[Runtime Security Scan]
-        Monitor[Security Monitoring]
-    end
-    
-    Code --> LocalScan
-    LocalScan --> Commit
-    Commit --> PRScan
-    PRScan --> Review
-    Review --> BuildScan
-    BuildScan --> DeployScan
-    DeployScan --> RuntimeScan
-    RuntimeScan --> Monitor
-```
+![Shift Left](../images/shift-left.png)
 
 ### ✅ Shift-Left Benefits
 
@@ -113,53 +51,14 @@ graph LR
 | **Pull Request** | SAST, SCA, IaC, Container | Block PR if issues found |
 | **Build** | Container scanning | Catch vulnerabilities in images |
 | **Deploy** | Policy validation | Ensure compliance before deploy |
+| **Staging** | DAST (Dynamic testing) | Test running application for runtime vulnerabilities before production |
 | **Runtime** | Security monitoring | Detect runtime threats |
 
 ---
 
 ## 🔄 DevSecOps Workflow
 
-```mermaid
-graph TB
-    subgraph "Development"
-        Dev[Developer]
-        IDE[IDE with Security Plugins]
-        Git[Git]
-    end
-    
-    subgraph "CI/CD"
-        GitHub[GitHub Actions]
-        SecurityScan[Security Scanners]
-        Build[Build & Test]
-    end
-    
-    subgraph "Security"
-        SAST[SAST: SonarQube]
-        SCA[SCA: npm audit, Snyk]
-        IaC[IaC: Checkov, tfsec]
-        Container[Container: Trivy]
-    end
-    
-    subgraph "Deployment"
-        ECR[ECR: Container Registry]
-        Terraform[Terraform: Infrastructure]
-        K8s[Kubernetes: Deployment]
-    end
-    
-    Dev --> IDE
-    IDE --> Git
-    Git --> GitHub
-    GitHub --> SecurityScan
-    SecurityScan --> SAST
-    SecurityScan --> SCA
-    SecurityScan --> IaC
-    SecurityScan --> Container
-    SecurityScan --> Build
-    Build --> ECR
-    Build --> Terraform
-    ECR --> K8s
-    Terraform --> K8s
-```
+![DevSecOps Workflow](../images/devops-flow.png)
 
 ---
 
@@ -167,9 +66,11 @@ graph TB
 
 ### 📊 SAST (Static Application Security Testing)
 
-**Purpose**: Analyze source code for security vulnerabilities
+**Purpose**: Analyze source code for security vulnerabilities without executing the application
 
 **Tools**: SonarQube, Snyk, Semgrep
+
+**When**: During development and in PR checks (before code execution)
 
 **Checks**:
 - SQL injection vulnerabilities
@@ -177,6 +78,8 @@ graph TB
 - Insecure dependencies
 - Hardcoded secrets
 - Weak cryptography
+
+**Note**: SAST analyzes source code statically, while DAST tests the running application. Both are complementary and should be used together for comprehensive security coverage.
 
 ### 📊 SCA (Software Composition Analysis)
 
@@ -213,6 +116,25 @@ graph TB
 - Application dependency vulnerabilities
 - Configuration issues
 - Secrets in images
+
+### 📊 DAST (Dynamic Application Security Testing)
+
+**Purpose**: Test running application for runtime security vulnerabilities in a controlled staging environment
+
+**Tools**: OWASP ZAP, Burp Suite, Nessus, AWS Inspector
+
+**When**: After deployment to staging environment, before production deployment
+
+**Checks**:
+- OWASP Top 10 vulnerabilities (SQL injection, XSS, CSRF, etc.)
+- API security vulnerabilities
+- Authentication and authorization flaws
+- Business logic vulnerabilities
+- Session management issues
+- Configuration security issues
+- Runtime error handling
+
+**Note**: DAST complements SAST by testing the running application rather than source code. It is performed in a controlled staging environment that mirrors production, allowing for safe security testing before production deployment as part of the Shift-Left security model.
 
 ---
 
@@ -322,12 +244,60 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve
 
-  deploy:
+  deploy-staging:
     runs-on: ubuntu-latest
+    needs: [build, terraform]
     steps:
       - uses: actions/checkout@v3
-      - name: Deploy to K8s
-        run: kubectl apply -f k8s/
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Deploy to Staging
+        run: |
+          kubectl config use-context staging
+          kubectl apply -f k8s/staging/
+          kubectl rollout status deployment/app -n staging
+
+  dast:
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Wait for staging deployment
+        run: sleep 60
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: 'https://staging.example.com'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+      - name: Generate DAST Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: dast-report
+          path: report_html.html
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [dast]
+    if: success()
+    steps:
+      - uses: actions/checkout@v3
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Deploy to Production
+        run: |
+          kubectl config use-context production
+          kubectl apply -f k8s/production/
+          kubectl rollout status deployment/app -n production
 ```
 
 ---
@@ -360,13 +330,14 @@ jobs:
 ## 💡 Key Decisions
 
 1. **✅ Shift-Left Security**: Security checks early in development lifecycle
-2. **✅ Automated Scanning**: SAST, SCA, IaC, container scanning in CI/CD
+2. **✅ Automated Scanning**: SAST, SCA, IaC, container, DAST scanning in CI/CD
 3. **✅ GitHub Actions**: CI/CD automation with security gates
 4. **✅ Security Gates**: Block PR/merge if security issues found
 5. **✅ SBOM Generation**: Automated SBOM generation for supply chain transparency
 6. **✅ Artifact Signing**: Sign container images for integrity verification
 7. **✅ Multi-Stage Scanning**: Security checks at multiple pipeline stages
 8. **✅ Policy as Code**: Infrastructure policies enforced via IaC scanning
+9. **✅ DAST in Staging**: Dynamic application security testing performed in controlled staging environment before production deployment, ensuring runtime vulnerabilities are caught as part of Shift-Left security model
 
 ---
 
@@ -379,5 +350,5 @@ jobs:
 
 ---
 
-> **💡 Tip**: Shift-left security catches vulnerabilities early, reducing cost and risk. Automated scanning in CI/CD ensures security is built into the development process, not bolted on later.
+> **💡 Tip**: Shift-left security catches vulnerabilities early, reducing cost and risk. Automated scanning in CI/CD ensures security is built into the development process, not bolted on later. SAST analyzes source code statically, while DAST tests the running application in a controlled staging environment, providing complementary security coverage before production deployment.
 
